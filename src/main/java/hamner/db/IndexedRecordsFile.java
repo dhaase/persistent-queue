@@ -74,8 +74,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
         while (e.hasNext()) {
             RecordHeader next = e.next();
             if (dataLength <= next.getFreeSpace()) {
-                newRecord = next.split();
-                newRecord.setKey(key);
+                newRecord = next.split(key);
                 writeRecordHeaderToIndex(next);
                 break;
             }

@@ -75,9 +75,7 @@ public abstract class BaseRecordsFile {
         // append record to end of file - grows file to allocate space
         long fp = getFileLength();
         setFileLength(fp + dataLength);
-        RecordHeader rh = new RecordHeader(fp, dataLength);
-        rh.setKey(key);
-        return rh;
+        return new RecordHeader(key, fp, dataLength);
     }
 
     /**
@@ -161,8 +159,11 @@ public abstract class BaseRecordsFile {
      */
     protected RecordHeader readRecordHeaderFromIndex(int position) {
         try {
+            String key = readKeyFromIndex(position);
             file.seek(indexPositionToRecordHeaderFp(position));
-            return RecordHeader.readHeader(file);
+            RecordHeader header = new RecordHeader(key, position);
+            header.read(file);
+            return header;
         } catch (Exception ex) {
             throw new RuntimeIOException(ex.toString(), ex);
         }
@@ -367,9 +368,7 @@ public abstract class BaseRecordsFile {
 
         public RecordHeader next() {
             currRecordIndex = nextRecordIndex;
-            String key = readKeyFromIndex(currRecordIndex);
             RecordHeader rh = readRecordHeaderFromIndex(currRecordIndex);
-            rh.setKey(key);
             ++nextRecordIndex;
             return rh;
         }

@@ -26,32 +26,27 @@ public class RecordHeader {
      * Indicates this header's position in the file index.
      */
     protected int indexPosition;
-    protected String key;
 
-    protected RecordHeader() {
+
+    protected final String key;
+
+    public RecordHeader(String key, int indexPosition) {
+        this.key = key;
+        this.indexPosition = indexPosition;
     }
 
-    protected RecordHeader(long dataPointer, int dataCapacity) {
+    public RecordHeader(String key, long dataPointer, int dataCapacity) {
         if (dataCapacity < 1) {
             throw new IllegalArgumentException("Bad record size: " + dataCapacity);
         }
+        this.key = key;
         this.dataPointer = dataPointer;
         this.dataCapacity = dataCapacity;
         this.dataCount = 0;
     }
 
-    protected static RecordHeader readHeader(DataInput in) throws IOException {
-        RecordHeader r = new RecordHeader();
-        r.read(in);
-        return r;
-    }
-
     public String getKey() {
         return key;
-    }
-
-    public void setKey(String key) {
-        this.key = key;
     }
 
     protected void setIndexPosition(int indexPosition) {
@@ -78,10 +73,9 @@ public class RecordHeader {
      * Returns a new record header which occupies the free space of this record.
      * Shrinks this record size by the size of its free space.
      */
-    protected RecordHeader split() throws IOException {
+    protected RecordHeader split(String key) throws IOException {
         long newFp = dataPointer + (long) dataCount;
-        RecordHeader newRecord = new RecordHeader(newFp, getFreeSpace());
-        newRecord.setKey(null);
+        RecordHeader newRecord = new RecordHeader(key, newFp, getFreeSpace());
         dataCapacity = dataCount;
         return newRecord;
     }
