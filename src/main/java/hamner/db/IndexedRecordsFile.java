@@ -41,6 +41,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
     /**
      * Returns the current number of records in the database.
      */
+    @Override
     public int getNumRecords() {
         return memIndex.size();
     }
@@ -48,6 +49,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
     /**
      * Checks if there is a record belonging to the given key.
      */
+    @Override
     public boolean recordExists(String key) {
         return memIndex.containsKey(key);
     }
@@ -55,6 +57,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
     /**
      * Maps a key to a record header by looking it up in the in-memory index.
      */
+    @Override
     protected RecordHeader keyToRecordHeader(String key) throws IOException {
         RecordHeader h = (RecordHeader) memIndex.get(key);
         if (h == null) {
@@ -67,6 +70,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      * This method searches the file for free space and then returns a RecordHeader
      * which uses the space. (O(n) memory accesses)
      */
+    @Override
     protected RecordHeader allocateRecord(String key, int dataLength) throws IOException {
         // search for empty space
         RecordHeader newRecord = null;
@@ -90,6 +94,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      * in the file is part of the record data of the RecordHeader which is returned.  Returns null if
      * the location is not part of a record. (O(n) mem accesses)
      */
+    @Override
     protected RecordHeader findRecordHeaderAt(long targetFp) throws IOException {
         Iterator<RecordHeader> e = memIndex.values().iterator();
         while (e.hasNext()) {
@@ -105,6 +110,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
     /**
      * Closes the database.
      */
+    @Override
     public void close() throws IOException, IOException {
         try {
             super.close();
@@ -117,6 +123,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      * Adds the new record to the in-memory index and calls the super class add
      * the index entry to the file.
      */
+    @Override
     protected void addEntryToIndex(String key, RecordHeader newRecord, int currentNumRecords) throws IOException {
         super.addEntryToIndex(key, newRecord, currentNumRecords);
         memIndex.put(key, newRecord);
@@ -126,6 +133,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      * Removes the record from the index. Replaces the target with the entry at the
      * end of the index.
      */
+    @Override
     protected void deleteEntryFromIndex(String key, RecordHeader header, int currentNumRecords) throws IOException {
         super.deleteEntryFromIndex(key, header, currentNumRecords);
         memIndex.remove(key);
