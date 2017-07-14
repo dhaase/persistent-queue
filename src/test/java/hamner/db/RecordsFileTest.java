@@ -37,7 +37,7 @@ public class RecordsFileTest {
     public void setUp() throws IOException {
         databaseFile = testFolder.newFile("sampleFile.records");
         databaseFile.delete();
-        recordsFile = new IndexedRecordsFile(databaseFile.getCanonicalPath(), 64);
+        recordsFile = new RecordsFile(databaseFile.getCanonicalPath(), 64);
     }
 
     @After
@@ -75,7 +75,7 @@ public class RecordsFileTest {
         //
         recordsFile.close();
         // When
-        BaseRecordsFile secondRecordsFile = new IndexedRecordsFile(databaseFile.getCanonicalPath(), "rw");
+        BaseRecordsFile secondRecordsFile = new RecordsFile(databaseFile.getCanonicalPath(), "rw");
         byte[] d_5 = new byte[100];
         byte[] d_1 = new byte[100];
         int len_5 = secondRecordsFile.readRecord(key_5, d_5, 0);
@@ -110,7 +110,7 @@ public class RecordsFileTest {
         //
         recordsFile.close();
         // When
-        BaseRecordsFile secondRecordsFile = new IndexedRecordsFile(databaseFile.getCanonicalPath(), "rw");
+        BaseRecordsFile secondRecordsFile = new RecordsFile(databaseFile.getCanonicalPath(), "rw");
         byte[] d_3a = new byte[100];
         byte[] d_3b = new byte[100];
         int len_3a = secondRecordsFile.readRecord(key_3, d_3a, 0);
@@ -147,7 +147,7 @@ public class RecordsFileTest {
         //
         recordsFile.close();
         // When
-        BaseRecordsFile secondRecordsFile = new IndexedRecordsFile(databaseFile.getCanonicalPath(), "rw");
+        BaseRecordsFile secondRecordsFile = new RecordsFile(databaseFile.getCanonicalPath(), "rw");
         int count1 = secondRecordsFile.getNumRecords();
         long fileLength1 = secondRecordsFile.getFileLength();
         secondRecordsFile.deleteRecord(key_3);
@@ -187,7 +187,7 @@ public class RecordsFileTest {
         //
         recordsFile.close();
         // When
-        BaseRecordsFile secondRecordsFile = new IndexedRecordsFile(databaseFile.getCanonicalPath(), "rw");
+        BaseRecordsFile secondRecordsFile = new RecordsFile(databaseFile.getCanonicalPath(), "rw");
         int count1 = secondRecordsFile.getNumRecords();
         long fileLength1 = secondRecordsFile.getFileLength();
         secondRecordsFile.deleteRecord(key_6);

@@ -61,12 +61,16 @@ public abstract class BaseRecordsFile {
     /**
      * Returns the number or records in the database.
      */
-    public abstract int getNumRecords();
+    public int getNumRecords() {
+        return numRecords;
+    }
 
     /**
      * Checks there is a record with the given key.
      */
-    public abstract boolean recordExists(String key);
+    public boolean recordExists(String key) throws IOException {
+        return (keyToRecordHeader(key) != null);
+    }
 
     /**
      * Locates space for a new record of dataLength size and initializes a RecordHeader.
@@ -83,7 +87,16 @@ public abstract class BaseRecordsFile {
      * in the file is part of the record data of the RecordHeader which is returned.  Returns null if
      * the location is not part of a record. (O(n) mem accesses)
      */
-    protected abstract RecordHeader findRecordHeaderAt(long targetFp) throws IOException;
+    protected RecordHeader findRecordHeaderAt(long targetFp) throws IOException {
+        Iterator<RecordHeader> e = recordHeaderIterator();
+        while (e.hasNext()) {
+            RecordHeader next = e.next();
+            if ((targetFp >= next.dataPointer) && (targetFp < (next.dataPointer + (long) next.dataCapacity))) {
+                return next;
+            }
+        }
+        return null;
+    }
 
     protected long getFileLength() throws IOException {
         return file.length();
@@ -275,7 +288,16 @@ public abstract class BaseRecordsFile {
         file.write(data, offset, length);
     }
 
-    abstract protected RecordHeader keyToRecordHeader(String key) throws IOException;
+    protected RecordHeader keyToRecordHeader(String key) throws IOException {
+        Iterator<RecordHeader> e = recordHeaderIterator();
+        while (e.hasNext()) {
+            RecordHeader next = e.next();
+            if (key.equals(next.getKey())) {
+                return next;
+            }
+        }
+        return null;
+    }
 
     /**
      * Deletes a record.
