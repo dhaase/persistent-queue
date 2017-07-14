@@ -1,6 +1,9 @@
 package hamner.db;
 
-import java.io.*;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 
 public abstract class BaseRecordsFile {
 
@@ -202,72 +205,35 @@ public abstract class BaseRecordsFile {
     }
 
     /**
-     * Adds the given record to the database.
-     */
-    public void insertRecord(RecordWriter rw) throws RecordsFileException, IOException {
-        String key = rw.getKey();
-        if (recordExists(key)) {
-            throw new RecordsFileException("Key exists: " + key);
-        }
-        insureIndexSpace(getNumRecords() + 1);
-        RecordHeader newRecord = allocateRecord(key, rw.getDataLength());
-        writeRecordData(newRecord, rw);
-        addEntryToIndex(key, newRecord, getNumRecords());
-    }
-
-    /**
      * Updates an existing record. If the new contents do not fit in the original record,
      * then the update is handled by deleting the old record and adding the new.
      */
-    public void updateRecord(RecordWriter rw) throws RecordsFileException, IOException {
-        RecordHeader header = keyToRecordHeader(rw.getKey());
-        if (rw.getDataLength() > header.dataCapacity) {
-            deleteRecord(rw.getKey());
-            insertRecord(rw);
+    public void updateRecord(String key, byte[] data, int offset, int length) throws RecordsFileException, IOException {
+        RecordHeader header = keyToRecordHeader(key);
+        if ((length - offset) > header.dataCapacity) {
+            deleteRecord(key);
+            insertRecord(key, data, offset, length);
         } else {
-            writeRecordData(header, rw);
+            writeRecordData(header, data, offset, length);
             writeRecordHeaderToIndex(header);
         }
     }
 
     /**
-     * Reads a record.
-     */
-    public RecordReader readRecord(String key) throws RecordsFileException, IOException {
-        byte[] data = readRecordData(key);
-        RecordReader rr = new RecordReader(key, data);
-        return rr;
-    }
-
-    /**
      * Reads the data for the record with the given key.
      */
-    protected byte[] readRecordData(String key) throws IOException, RecordsFileException {
-        return readRecordData(keyToRecordHeader(key));
+    public int readRecord(String key, byte[] data, int offset) throws IOException, RecordsFileException {
+        RecordHeader header = keyToRecordHeader(key);
+        return readRecordData(header, data, offset, header.dataCount);
     }
 
     /**
      * Reads the record data for the given record header.
      */
-    protected byte[] readRecordData(RecordHeader header) throws IOException {
-        byte[] buf = new byte[header.dataCount];
+    protected int readRecordData(RecordHeader header, byte[] data, int offset, int length) throws IOException {
         file.seek(header.dataPointer);
-        file.readFully(buf);
-        return buf;
-    }
-
-    /**
-     * Updates the contents of the given record. A RecordsFileException is thrown if the new data does not
-     * fit in the space allocated to the record. The header's data count is updated, but not
-     * written to the file.
-     */
-    protected void writeRecordData(RecordHeader header, RecordWriter rw) throws IOException, RecordsFileException {
-        if (rw.getDataLength() > header.dataCapacity) {
-            throw new RecordsFileException("Record data does not fit");
-        }
-        header.dataCount = rw.getDataLength();
-        file.seek(header.dataPointer);
-        rw.writeTo((DataOutput) file);
+        file.readFully(data, offset, length);
+        return (length - offset);
     }
 
 
@@ -306,7 +272,8 @@ public abstract class BaseRecordsFile {
                 // target record is first in the file and is deleted by adding its space to
                 // the second record.
                 RecordHeader secondRecord = getRecordAt(delRec.dataPointer + (long) delRec.dataCapacity);
-                byte[] data = readRecordData(secondRecord);
+                byte[] data = new byte[secondRecord.dataCount];
+                readRecordData(secondRecord, data, 0, data.length);
                 secondRecord.dataPointer = delRec.dataPointer;
                 secondRecord.dataCapacity += delRec.dataCapacity;
                 writeRecordData(secondRecord, data, 0, data.length);
@@ -330,7 +297,8 @@ public abstract class BaseRecordsFile {
         }
         while (endIndexPtr > dataStartPtr) {
             RecordHeader first = getRecordAt(dataStartPtr);
-            byte[] data = readRecordData(first);
+            byte[] data = new byte[first.dataCount];
+            readRecordData(first, data, 0, data.length);
             first.dataPointer = getFileLength();
             first.dataCapacity = data.length;
             setFileLength(first.dataPointer + data.length);

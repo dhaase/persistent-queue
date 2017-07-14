@@ -8,8 +8,6 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.BlockJUnit4ClassRunner;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 
@@ -51,7 +49,7 @@ public class RecordsFileTest {
 
 
     @Test
-    public void test() throws IOException, RecordsFileException {
+    public void testInsertRecord() throws IOException, RecordsFileException {
         // Given
         //       - index 1
         String key_1 = "1.idx";
@@ -74,15 +72,14 @@ public class RecordsFileTest {
         //
         recordsFile.close();
         // When
-        RecordReader rr = null;
         BaseRecordsFile secondRecordsFile = new IndexedRecordsFile(databaseFile.getCanonicalPath(), "rw");
-        rr = secondRecordsFile.readRecord(key_5);
-        byte[] d_5 = rr.getData();
-        rr = secondRecordsFile.readRecord(key_1);
-        byte[] d_1 = rr.getData();
+        byte[] d_5 = new byte[100];
+        byte[] d_1 = new byte[100];
+        int len_5 = secondRecordsFile.readRecord(key_5, d_5, 0);
+        int len_1 = secondRecordsFile.readRecord(key_1, d_1, 0);
         // Then
-        System.out.println(new String(d_1));
-        System.out.println(new String(d_5));
+        System.out.println(new String(d_1, 0, len_1));
+        System.out.println(new String(d_5, 0, len_5));
     }
 
 }
