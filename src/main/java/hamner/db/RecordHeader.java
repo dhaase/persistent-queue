@@ -77,7 +77,7 @@ public class RecordHeader {
      * Returns a new record header which occupies the free space of this record.
      * Shrinks this record size by the size of its free space.
      */
-    protected RecordHeader split() throws RecordsFileException {
+    protected RecordHeader split() throws IOException {
         long newFp = dataPointer + (long) dataCount;
         RecordHeader newRecord = new RecordHeader(newFp, getFreeSpace());
         dataCapacity = dataCount;

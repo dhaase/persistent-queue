@@ -19,7 +19,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      * dynamically, but the parameter is provide to increase
      * efficiency.
      */
-    public IndexedRecordsFile(String dbPath, int initialSize) throws IOException, RecordsFileException {
+    public IndexedRecordsFile(String dbPath, int initialSize) throws IOException {
         super(dbPath, initialSize);
         memIndex = new Hashtable(initialSize);
     }
@@ -27,7 +27,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
     /**
      * Opens an existing database and initializes the in-memory index.
      */
-    public IndexedRecordsFile(String dbPath, String accessFlags) throws IOException, RecordsFileException {
+    public IndexedRecordsFile(String dbPath, String accessFlags) throws IOException {
         super(dbPath, accessFlags);
         int numRecords = readNumRecordsHeader();
         memIndex = new Hashtable(numRecords);
@@ -64,10 +64,10 @@ public class IndexedRecordsFile extends BaseRecordsFile {
     /**
      * Maps a key to a record header by looking it up in the in-memory index.
      */
-    protected RecordHeader keyToRecordHeader(String key) throws RecordsFileException {
+    protected RecordHeader keyToRecordHeader(String key) throws IOException {
         RecordHeader h = (RecordHeader) memIndex.get(key);
         if (h == null) {
-            throw new RecordsFileException("Key not found: " + key);
+            throw new IOException("Key not found: " + key);
         }
         return h;
     }
@@ -76,7 +76,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      * This method searches the file for free space and then returns a RecordHeader
      * which uses the space. (O(n) memory accesses)
      */
-    protected RecordHeader allocateRecord(String key, int dataLength) throws RecordsFileException, IOException {
+    protected RecordHeader allocateRecord(String key, int dataLength) throws IOException {
         // search for empty space
         RecordHeader newRecord = null;
         Enumeration e = memIndex.elements();
@@ -102,7 +102,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      * in the file is part of the record data of the RecordHeader which is returned.  Returns null if
      * the location is not part of a record. (O(n) mem accesses)
      */
-    protected RecordHeader getRecordAt(long targetFp) throws RecordsFileException {
+    protected RecordHeader getRecordAt(long targetFp) throws IOException {
         Enumeration e = memIndex.elements();
         while (e.hasMoreElements()) {
             RecordHeader next = (RecordHeader) e.nextElement();
@@ -118,7 +118,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
     /**
      * Closes the database.
      */
-    public synchronized void close() throws IOException, RecordsFileException {
+    public synchronized void close() throws IOException, IOException {
         try {
             super.close();
         } finally {
@@ -130,7 +130,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      * Adds the new record to the in-memory index and calls the super class add
      * the index entry to the file.
      */
-    protected void addEntryToIndex(String key, RecordHeader newRecord, int currentNumRecords) throws IOException, RecordsFileException {
+    protected void addEntryToIndex(String key, RecordHeader newRecord, int currentNumRecords) throws IOException {
         super.addEntryToIndex(key, newRecord, currentNumRecords);
         memIndex.put(key, newRecord);
     }
@@ -139,7 +139,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      * Removes the record from the index. Replaces the target with the entry at the
      * end of the index.
      */
-    protected void deleteEntryFromIndex(String key, RecordHeader header, int currentNumRecords) throws IOException, RecordsFileException {
+    protected void deleteEntryFromIndex(String key, RecordHeader header, int currentNumRecords) throws IOException {
         super.deleteEntryFromIndex(key, header, currentNumRecords);
         RecordHeader deleted = (RecordHeader) memIndex.remove(key);
     }
