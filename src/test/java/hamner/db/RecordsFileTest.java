@@ -56,22 +56,22 @@ public class RecordsFileTest {
         // Given
         //       - index 1
         String key_1 = "1.idx";
-        recordsFile.insertRecord(key_1, ONE, 0, ONE.length);
+        recordsFile.addRecord(key_1, ONE, 0, ONE.length);
         //       - index 2
         String key_2 = "2.idx";
-        recordsFile.insertRecord(key_2, TWO, 0, TWO.length);
+        recordsFile.addRecord(key_2, TWO, 0, TWO.length);
         //       - index 3
         String key_3 = "3.idx";
-        recordsFile.insertRecord(key_3, THREE, 0, THREE.length);
+        recordsFile.addRecord(key_3, THREE, 0, THREE.length);
         //       - index 4
         String key_4 = "4.idx";
-        recordsFile.insertRecord(key_4, FOUR, 0, FOUR.length);
+        recordsFile.addRecord(key_4, FOUR, 0, FOUR.length);
         //       - index 5
         String key_5 = "5.idx";
-        recordsFile.insertRecord(key_5, FIVE, 0, FIVE.length);
+        recordsFile.addRecord(key_5, FIVE, 0, FIVE.length);
         //       - index 6
         String key_6 = "6.idx";
-        recordsFile.insertRecord(key_6, SIX, 0, SIX.length);
+        recordsFile.addRecord(key_6, SIX, 0, SIX.length);
         //
         recordsFile.close();
         // When
@@ -91,22 +91,22 @@ public class RecordsFileTest {
         // Given
         //       - index 1
         String key_1 = "1.idx";
-        recordsFile.insertRecord(key_1, ONE, 0, ONE.length);
+        recordsFile.addRecord(key_1, ONE, 0, ONE.length);
         //       - index 2
         String key_2 = "2.idx";
-        recordsFile.insertRecord(key_2, TWO, 0, TWO.length);
+        recordsFile.addRecord(key_2, TWO, 0, TWO.length);
         //       - index 3
         String key_3 = "3.idx";
-        recordsFile.insertRecord(key_3, THREE, 0, THREE.length);
+        recordsFile.addRecord(key_3, THREE, 0, THREE.length);
         //       - index 4
         String key_4 = "4.idx";
-        recordsFile.insertRecord(key_4, FOUR, 0, FOUR.length);
+        recordsFile.addRecord(key_4, FOUR, 0, FOUR.length);
         //       - index 5
         String key_5 = "5.idx";
-        recordsFile.insertRecord(key_5, FIVE, 0, FIVE.length);
+        recordsFile.addRecord(key_5, FIVE, 0, FIVE.length);
         //       - index 6
         String key_6 = "6.idx";
-        recordsFile.insertRecord(key_6, SIX, 0, SIX.length);
+        recordsFile.addRecord(key_6, SIX, 0, SIX.length);
         //
         recordsFile.close();
         // When
@@ -127,22 +127,23 @@ public class RecordsFileTest {
         // Given
         //       - index 1
         String key_1 = "1.idx";
-        recordsFile.insertRecord(key_1, ONE, 0, ONE.length);
+        recordsFile.addRecord(key_1, ONE, 0, ONE.length);
         //       - index 2
         String key_2 = "2.idx";
-        recordsFile.insertRecord(key_2, TWO, 0, TWO.length);
+        recordsFile.addRecord(key_2, TWO, 0, TWO.length);
         //       - index 3
         String key_3 = "3.idx";
-        recordsFile.insertRecord(key_3, THREE, 0, THREE.length);
+        recordsFile.addRecord(key_3, THREE, 0, THREE.length);
         //       - index 4
         String key_4 = "4.idx";
-        recordsFile.insertRecord(key_4, FOUR, 0, FOUR.length);
+        recordsFile.addRecord(key_4, FOUR, 0, FOUR.length);
         //       - index 5
         String key_5 = "5.idx";
-        recordsFile.insertRecord(key_5, FIVE, 0, FIVE.length);
+        recordsFile.addRecord(key_5, FIVE, 0, FIVE.length);
         //       - index 6
         String key_6 = "6.idx";
-        recordsFile.insertRecord(key_6, SIX, 0, SIX.length);
+        recordsFile.addRecord(key_6, SIX, 0, SIX.length);
+        long initialFileSize = databaseFile.length();
         //
         recordsFile.close();
         // When
@@ -155,8 +156,8 @@ public class RecordsFileTest {
         // Then
         assertThat(count1).isEqualTo(6);
         assertThat(count2).isEqualTo(5);
-        assertThat(fileLength1).isEqualTo(5158L);
-        assertThat(fileLength2).isEqualTo(5158L);
+        assertThat(fileLength1).isEqualTo(initialFileSize);
+        assertThat(fileLength2).isEqualTo(initialFileSize);
         assertThat(fileLength2).isEqualTo(databaseFile.length());
     }
 
@@ -166,22 +167,23 @@ public class RecordsFileTest {
         // Given
         //       - index 1
         String key_1 = "1.idx";
-        recordsFile.insertRecord(key_1, ONE, 0, ONE.length);
+        recordsFile.addRecord(key_1, ONE, 0, ONE.length);
         //       - index 2
         String key_2 = "2.idx";
-        recordsFile.insertRecord(key_2, TWO, 0, TWO.length);
+        recordsFile.addRecord(key_2, TWO, 0, TWO.length);
         //       - index 3
         String key_3 = "3.idx";
-        recordsFile.insertRecord(key_3, THREE, 0, THREE.length);
+        recordsFile.addRecord(key_3, THREE, 0, THREE.length);
         //       - index 4
         String key_4 = "4.idx";
-        recordsFile.insertRecord(key_4, FOUR, 0, FOUR.length);
+        recordsFile.addRecord(key_4, FOUR, 0, FOUR.length);
         //       - index 5
         String key_5 = "5.idx";
-        recordsFile.insertRecord(key_5, FIVE, 0, FIVE.length);
+        recordsFile.addRecord(key_5, FIVE, 0, FIVE.length);
         //       - index 6
         String key_6 = "6.idx";
-        recordsFile.insertRecord(key_6, SIX, 0, SIX.length);
+        recordsFile.addRecord(key_6, SIX, 0, SIX.length);
+        long initialFileSize = databaseFile.length();
         //
         recordsFile.close();
         // When
@@ -194,8 +196,8 @@ public class RecordsFileTest {
         // Then
         assertThat(count1).isEqualTo(6);
         assertThat(count2).isEqualTo(5);
-        assertThat(fileLength1).isEqualTo(5158L);
-        assertThat(fileLength2).isEqualTo(5158L - SIX.length);
+        assertThat(fileLength1).isEqualTo(initialFileSize);
+        assertThat(fileLength2).isEqualTo(initialFileSize - SIX.length);
         assertThat(fileLength2).isEqualTo(databaseFile.length());
     }
 

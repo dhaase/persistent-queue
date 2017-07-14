@@ -26,6 +26,7 @@ public class RecordHeader {
      * Indicates this header's position in the file index.
      */
     protected int indexPosition;
+    protected String key;
 
     protected RecordHeader() {
     }
@@ -45,16 +46,16 @@ public class RecordHeader {
         return r;
     }
 
-    protected int getIndexPosition() {
-        return indexPosition;
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
     }
 
     protected void setIndexPosition(int indexPosition) {
         this.indexPosition = indexPosition;
-    }
-
-    protected int getDataCapacity() {
-        return dataCapacity;
     }
 
     protected int getFreeSpace() {
@@ -80,6 +81,7 @@ public class RecordHeader {
     protected RecordHeader split() throws IOException {
         long newFp = dataPointer + (long) dataCount;
         RecordHeader newRecord = new RecordHeader(newFp, getFreeSpace());
+        newRecord.setKey(null);
         dataCapacity = dataCount;
         return newRecord;
     }

@@ -1,25 +1,32 @@
 package hamner.db;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.util.Iterator;
 
 public abstract class BaseRecordsFile {
 
     // Total length in bytes of the global database headers.
-    protected static final int FILE_HEADERS_REGION_LENGTH = 16;
+    private static final int FILE_HEADERS_REGION_LENGTH = 16;
     // Number of bytes in the record header.
-    protected static final int RECORD_HEADER_LENGTH = 16;
+    private static final int RECORD_HEADER_LENGTH = 16;
     // The length of a key in the index.
-    protected static final int MAX_KEY_LENGTH = 64;
+    private static final int MAX_KEY_LENGTH = 64;
     // The total length of one index entry - the key length plus the record header length.
-    protected static final int INDEX_ENTRY_LENGTH = MAX_KEY_LENGTH + RECORD_HEADER_LENGTH;
+    private static final int INDEX_ENTRY_LENGTH = MAX_KEY_LENGTH + RECORD_HEADER_LENGTH;
     // File pointer to the num records header.
-    protected static final long NUM_RECORDS_HEADER_LOCATION = 0;
+    private static final long NUM_RECORDS_HEADER_LOCATION = 0;
     // File pointer to the data start pointer header.
-    protected static final long DATA_START_HEADER_LOCATION = 4;
+    private static final long DATA_START_HEADER_LOCATION = 4;
     // Current file pointer to the start of the record data.
-    protected long dataStartPtr;
+    private long dataStartPtr;
     // The database file.
     private RandomAccessFile file;
+    // Count of current records.
+    private int numRecords;
 
     /**
      * Creates a new database file, initializing the appropriate headers. Enough space is allocated in
@@ -30,8 +37,8 @@ public abstract class BaseRecordsFile {
         if (f.exists()) {
             throw new IOException("Database already exits: " + dbPath);
         }
-        file = new RandomAccessFile(f, "rw");
-        dataStartPtr = indexPositionToKeyFp(initialSize);  // Record Data Region starts were the
+        this.file = new RandomAccessFile(f, "rw");
+        this.dataStartPtr = indexPositionToKeyFp(initialSize);  // Record Data Region starts were the
         setFileLength(dataStartPtr);                       // (i+1)th index entry would start.
         writeNumRecordsHeader(0);
         writeDataStartPtrHeader(dataStartPtr);
@@ -46,8 +53,9 @@ public abstract class BaseRecordsFile {
         if (!f.exists()) {
             throw new IOException("Database not found: " + dbPath);
         }
-        file = new RandomAccessFile(f, accessFlags);
-        dataStartPtr = readDataStartHeader();
+        this.file = new RandomAccessFile(f, accessFlags);
+        this.dataStartPtr = readDataStartHeader();
+        this.numRecords = readNumRecordsHeader();
     }
 
     /**
@@ -63,14 +71,21 @@ public abstract class BaseRecordsFile {
     /**
      * Locates space for a new record of dataLength size and initializes a RecordHeader.
      */
-    protected abstract RecordHeader allocateRecord(String key, int dataLength) throws IOException;
+    protected RecordHeader allocateRecord(String key, int dataLength) throws IOException {
+        // append record to end of file - grows file to allocate space
+        long fp = getFileLength();
+        setFileLength(fp + dataLength);
+        RecordHeader rh = new RecordHeader(fp, dataLength);
+        rh.setKey(key);
+        return rh;
+    }
 
     /**
      * Returns the record to which the target file pointer belongs - meaning the specified location
      * in the file is part of the record data of the RecordHeader which is returned.  Returns null if
      * the location is not part of a record. (O(n) mem accesses)
      */
-    protected abstract RecordHeader getRecordAt(long targetFp) throws IOException;
+    protected abstract RecordHeader findRecordHeaderAt(long targetFp) throws IOException;
 
     protected long getFileLength() throws IOException {
         return file.length();
@@ -132,17 +147,25 @@ public abstract class BaseRecordsFile {
     /**
      * Reads the ith key from the index.
      */
-    String readKeyFromIndex(int position) throws IOException {
-        file.seek(indexPositionToKeyFp(position));
-        return file.readUTF();
+    protected String readKeyFromIndex(int position) {
+        try {
+            file.seek(indexPositionToKeyFp(position));
+            return file.readUTF();
+        } catch (Exception ex) {
+            throw new RuntimeIOException(ex.toString(), ex);
+        }
     }
 
     /**
      * Reads the ith record header from the index.
      */
-    RecordHeader readRecordHeaderFromIndex(int position) throws IOException {
-        file.seek(indexPositionToRecordHeaderFp(position));
-        return RecordHeader.readHeader(file);
+    protected RecordHeader readRecordHeaderFromIndex(int position) {
+        try {
+            file.seek(indexPositionToRecordHeaderFp(position));
+            return RecordHeader.readHeader(file);
+        } catch (Exception ex) {
+            throw new RuntimeIOException(ex.toString(), ex);
+        }
     }
 
     /**
@@ -154,7 +177,7 @@ public abstract class BaseRecordsFile {
     }
 
     /**
-     * Appends an entry to end of index. Assumes that insureIndexSpace() has already been called.
+     * Appends an entry to end of index. Assumes that ensureIndexSpace() has already been called.
      */
     protected void addEntryToIndex(String key, RecordHeader newRecord, int currentNumRecords) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream(MAX_KEY_LENGTH);
@@ -193,14 +216,15 @@ public abstract class BaseRecordsFile {
     /**
      * Adds the given record to the database.
      */
-    public void insertRecord(String key, byte[] data, int offset, int length) throws IOException {
+    public void addRecord(String key, byte[] data, int offset, int length) throws IOException {
         if (recordExists(key)) {
             throw new IOException("Key exists: " + key);
         }
-        insureIndexSpace(getNumRecords() + 1);
+        ensureIndexSpace(getNumRecords() + 1);
         RecordHeader newRecord = allocateRecord(key, length);
         writeRecordData(newRecord, data, offset, length);
         addEntryToIndex(key, newRecord, getNumRecords());
+        ++numRecords;
     }
 
     /**
@@ -211,7 +235,7 @@ public abstract class BaseRecordsFile {
         RecordHeader header = keyToRecordHeader(key);
         if ((length - offset) > header.dataCapacity) {
             deleteRecord(key);
-            insertRecord(key, data, offset, length);
+            addRecord(key, data, offset, length);
         } else {
             writeRecordData(header, data, offset, length);
             writeRecordHeaderToIndex(header);
@@ -255,37 +279,42 @@ public abstract class BaseRecordsFile {
     /**
      * Deletes a record.
      */
-    public void deleteRecord(String key) throws IOException {
-        RecordHeader delRec = keyToRecordHeader(key);
-        int currentNumRecords = getNumRecords();
-        if (getFileLength() == delRec.dataPointer + delRec.dataCapacity) {
-            // shrink file since this is the last record in the file
-            setFileLength(delRec.dataPointer);
-        } else {
-            RecordHeader previous = getRecordAt(delRec.dataPointer - 1);
-            if (previous != null) {
-                // append space of deleted record onto previous record
-                previous.dataCapacity += delRec.dataCapacity;
-                writeRecordHeaderToIndex(previous);
+    public void deleteRecord(String key) {
+        try {
+            RecordHeader delRecHead = keyToRecordHeader(key);
+            int currentNumRecords = getNumRecords();
+            if (getFileLength() == delRecHead.dataPointer + delRecHead.dataCapacity) {
+                // shrink file since this is the last record in the file
+                setFileLength(delRecHead.dataPointer);
             } else {
-                // target record is first in the file and is deleted by adding its space to
-                // the second record.
-                RecordHeader secondRecord = getRecordAt(delRec.dataPointer + (long) delRec.dataCapacity);
-                byte[] data = new byte[secondRecord.dataCount];
-                readRecordData(secondRecord, data, 0, data.length);
-                secondRecord.dataPointer = delRec.dataPointer;
-                secondRecord.dataCapacity += delRec.dataCapacity;
-                writeRecordData(secondRecord, data, 0, data.length);
-                writeRecordHeaderToIndex(secondRecord);
+                RecordHeader previous = findRecordHeaderAt(delRecHead.dataPointer - 1);
+                if (previous != null) {
+                    // append space of deleted record onto previous record
+                    previous.dataCapacity += delRecHead.dataCapacity;
+                    writeRecordHeaderToIndex(previous);
+                } else {
+                    // target record is first in the file and is deleted by adding its space to
+                    // the second record.
+                    RecordHeader secondRecord = findRecordHeaderAt(delRecHead.dataPointer + (long) delRecHead.dataCapacity);
+                    byte[] data = new byte[secondRecord.dataCount];
+                    readRecordData(secondRecord, data, 0, data.length);
+                    secondRecord.dataPointer = delRecHead.dataPointer;
+                    secondRecord.dataCapacity += delRecHead.dataCapacity;
+                    writeRecordData(secondRecord, data, 0, data.length);
+                    writeRecordHeaderToIndex(secondRecord);
+                }
             }
+            deleteEntryFromIndex(key, delRecHead, currentNumRecords);
+            --numRecords;
+        } catch (Exception ex) {
+            throw new RuntimeIOException(ex.toString(), ex);
         }
-        deleteEntryFromIndex(key, delRec, currentNumRecords);
     }
 
 
     // Checks to see if there is space for and additional index entry. If
     // not, space is created by moving records to the end of the file.
-    protected void insureIndexSpace(int requiredNumRecords) throws IOException {
+    protected void ensureIndexSpace(int requiredNumRecords) throws IOException {
         int currentNumRecords = getNumRecords();
         long endIndexPtr = indexPositionToKeyFp(requiredNumRecords);
         if (endIndexPtr > getFileLength() && currentNumRecords == 0) {
@@ -295,7 +324,7 @@ public abstract class BaseRecordsFile {
             return;
         }
         while (endIndexPtr > dataStartPtr) {
-            RecordHeader first = getRecordAt(dataStartPtr);
+            RecordHeader first = findRecordHeaderAt(dataStartPtr);
             byte[] data = new byte[first.dataCount];
             readRecordData(first, data, 0, data.length);
             first.dataPointer = getFileLength();
@@ -321,6 +350,35 @@ public abstract class BaseRecordsFile {
         }
     }
 
+
+    public RecordHeaderIterator recordHeaderIterator() {
+        return new RecordHeaderIterator();
+    }
+
+
+    class RecordHeaderIterator implements Iterator<RecordHeader> {
+
+        int currRecordIndex;
+        int nextRecordIndex;
+
+        public boolean hasNext() {
+            return nextRecordIndex < BaseRecordsFile.this.numRecords;
+        }
+
+        public RecordHeader next() {
+            currRecordIndex = nextRecordIndex;
+            String key = readKeyFromIndex(currRecordIndex);
+            RecordHeader rh = readRecordHeaderFromIndex(currRecordIndex);
+            rh.setKey(key);
+            ++nextRecordIndex;
+            return rh;
+        }
+
+        public void remove() {
+            String key = readKeyFromIndex(currRecordIndex);
+            deleteRecord(key);
+        }
+    }
 
 }
 

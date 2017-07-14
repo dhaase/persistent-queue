@@ -1,8 +1,9 @@
 package hamner.db;
 
 import java.io.IOException;
-import java.util.Enumeration;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 
 public class IndexedRecordsFile extends BaseRecordsFile {
@@ -11,7 +12,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      * Hashtable which holds the in-memory index. For efficiency, the entire index
      * is cached in memory. The hashtable maps a key of type String to a RecordHeader.
      */
-    protected Hashtable memIndex;
+    protected final Map<String, RecordHeader> memIndex;
 
     /**
      * Creates a new database file.  The initialSize parameter determines the
@@ -21,7 +22,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      */
     public IndexedRecordsFile(String dbPath, int initialSize) throws IOException {
         super(dbPath, initialSize);
-        memIndex = new Hashtable(initialSize);
+        memIndex = new HashMap<String, RecordHeader>();
     }
 
     /**
@@ -29,35 +30,25 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      */
     public IndexedRecordsFile(String dbPath, String accessFlags) throws IOException {
         super(dbPath, accessFlags);
-        int numRecords = readNumRecordsHeader();
-        memIndex = new Hashtable(numRecords);
-        for (int i = 0; i < numRecords; i++) {
-            String key = readKeyFromIndex(i);
-            RecordHeader header = readRecordHeaderFromIndex(i);
-            header.setIndexPosition(i);
-            memIndex.put(key, header);
+        Iterator<RecordHeader> iterator = recordHeaderIterator();
+        memIndex = new HashMap<String, RecordHeader>();
+        while (iterator.hasNext()) {
+            RecordHeader header = iterator.next();
+            memIndex.put(header.getKey(), header);
         }
-    }
-
-
-    /**
-     * Returns an enumeration of all the keys in the database.
-     */
-    public synchronized Enumeration enumerateKeys() {
-        return memIndex.keys();
     }
 
     /**
      * Returns the current number of records in the database.
      */
-    public synchronized int getNumRecords() {
+    public int getNumRecords() {
         return memIndex.size();
     }
 
     /**
      * Checks if there is a record belonging to the given key.
      */
-    public synchronized boolean recordExists(String key) {
+    public boolean recordExists(String key) {
         return memIndex.containsKey(key);
     }
 
@@ -79,20 +70,18 @@ public class IndexedRecordsFile extends BaseRecordsFile {
     protected RecordHeader allocateRecord(String key, int dataLength) throws IOException {
         // search for empty space
         RecordHeader newRecord = null;
-        Enumeration e = memIndex.elements();
-        while (e.hasMoreElements()) {
-            RecordHeader next = (RecordHeader) e.nextElement();
+        Iterator<RecordHeader> e = memIndex.values().iterator();
+        while (e.hasNext()) {
+            RecordHeader next = e.next();
             if (dataLength <= next.getFreeSpace()) {
                 newRecord = next.split();
+                newRecord.setKey(key);
                 writeRecordHeaderToIndex(next);
                 break;
             }
         }
         if (newRecord == null) {
-            // append record to end of file - grows file to allocate space
-            long fp = getFileLength();
-            setFileLength(fp + dataLength);
-            newRecord = new RecordHeader(fp, dataLength);
+            return super.allocateRecord(key, dataLength);
         }
         return newRecord;
     }
@@ -102,12 +91,11 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      * in the file is part of the record data of the RecordHeader which is returned.  Returns null if
      * the location is not part of a record. (O(n) mem accesses)
      */
-    protected RecordHeader getRecordAt(long targetFp) throws IOException {
-        Enumeration e = memIndex.elements();
-        while (e.hasMoreElements()) {
-            RecordHeader next = (RecordHeader) e.nextElement();
-            if (targetFp >= next.dataPointer &&
-                    targetFp < next.dataPointer + (long) next.dataCapacity) {
+    protected RecordHeader findRecordHeaderAt(long targetFp) throws IOException {
+        Iterator<RecordHeader> e = memIndex.values().iterator();
+        while (e.hasNext()) {
+            RecordHeader next = e.next();
+            if ((targetFp >= next.dataPointer) && (targetFp < (next.dataPointer + (long) next.dataCapacity))) {
                 return next;
             }
         }
@@ -118,11 +106,11 @@ public class IndexedRecordsFile extends BaseRecordsFile {
     /**
      * Closes the database.
      */
-    public synchronized void close() throws IOException, IOException {
+    public void close() throws IOException, IOException {
         try {
             super.close();
         } finally {
-            memIndex = null;
+            memIndex.clear();
         }
     }
 
@@ -141,7 +129,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      */
     protected void deleteEntryFromIndex(String key, RecordHeader header, int currentNumRecords) throws IOException {
         super.deleteEntryFromIndex(key, header, currentNumRecords);
-        RecordHeader deleted = (RecordHeader) memIndex.remove(key);
+        memIndex.remove(key);
     }
 
 
