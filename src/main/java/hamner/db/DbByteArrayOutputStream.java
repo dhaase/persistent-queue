@@ -1,6 +1,8 @@
 package hamner.db;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutput;
+import java.io.IOException;
 
 /**
  * Extends ByteArrayOutputStream to provide a way of writing the buffer to
@@ -8,21 +10,21 @@ import java.io.*;
  */
 public class DbByteArrayOutputStream extends ByteArrayOutputStream {
 
-  public DbByteArrayOutputStream() {
-    super();
-  }
+    public DbByteArrayOutputStream() {
+        super();
+    }
 
-  public DbByteArrayOutputStream(int size) {
-    super(size);
-  }
+    public DbByteArrayOutputStream(int size) {
+        super(size);
+    }
 
-  /**
-   * Writes the full contents of the buffer a DataOutput stream.
-   */
-  public synchronized void writeTo (DataOutput dstr) throws IOException {
-    byte[] data = super.toByteArray();
-    int l = super.size();
-    dstr.write(data, 0, l);
-  }
+    /**
+     * Writes the full contents of the buffer a DataOutput stream.
+     */
+    public synchronized void writeTo(DataOutput dstr) throws IOException {
+        byte[] data = super.toByteArray();
+        int l = super.size();
+        dstr.write(data, 0, l);
+    }
 
 }
