@@ -1,7 +1,6 @@
 package eu.dirk.haase.io.storage.record.header;
 
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.BlockJUnit4ClassRunner;
@@ -9,6 +8,7 @@ import org.junit.runners.BlockJUnit4ClassRunner;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -50,11 +50,11 @@ public class DataBlockHeaderTest {
         DataBlockHeader givenHeader = new DataBlockHeader();
         ByteBuffer buffer = ByteBuffer.allocate(givenHeader.getHeaderLength());
         int dataBlockCapacity = 12;
-        int dataBlockOccupied = 45;
-        int startDataPointer = 67;
+        int occupiedBytes = 45;
+        int startDataPointer = 80;
         int startPointer = 78;
         givenHeader.setDataBlockCapacity(dataBlockCapacity);
-        givenHeader.setDataBlockOccupied(dataBlockOccupied);
+        givenHeader.setOccupiedBytes(occupiedBytes);
         givenHeader.setStartDataPointer(startDataPointer);
         givenHeader.setStartPointer(startPointer);
         // ============
@@ -67,12 +67,12 @@ public class DataBlockHeaderTest {
         // Then
         assertThat(givenHeader.getStartPointer()).isEqualTo(whenHeader.getStartPointer());
         assertThat(givenHeader.getDataBlockCapacity()).isEqualTo(whenHeader.getDataBlockCapacity());
-        assertThat(givenHeader.getDataBlockOccupied()).isEqualTo(whenHeader.getDataBlockOccupied());
+        assertThat(givenHeader.getOccupiedBytes()).isEqualTo(whenHeader.getOccupiedBytes());
         assertThat(givenHeader.getStartDataPointer()).isEqualTo(whenHeader.getStartDataPointer());
 
         assertThat(givenHeader.getStartPointer()).isEqualTo(startPointer);
         assertThat(givenHeader.getDataBlockCapacity()).isEqualTo(dataBlockCapacity);
-        assertThat(givenHeader.getDataBlockOccupied()).isEqualTo(dataBlockOccupied);
+        assertThat(givenHeader.getOccupiedBytes()).isEqualTo(occupiedBytes);
         assertThat(givenHeader.getStartDataPointer()).isEqualTo(startDataPointer);
     }
 
@@ -83,11 +83,11 @@ public class DataBlockHeaderTest {
         DataBlockHeader givenHeader = new DataBlockHeader();
         ByteBuffer buffer = ByteBuffer.allocate(givenHeader.getHeaderLength());
         int dataBlockCapacity = 12;
-        int dataBlockOccupied = 45;
-        int startDataPointer = 67;
+        int occupiedBytes = 45;
+        int startDataPointer = 80;
         int startPointer = 1230;
         givenHeader.setDataBlockCapacity(dataBlockCapacity);
-        givenHeader.setDataBlockOccupied(dataBlockOccupied);
+        givenHeader.setOccupiedBytes(occupiedBytes);
         givenHeader.setStartDataPointer(startDataPointer);
         givenHeader.setStartPointer(startPointer);
 
@@ -99,10 +99,6 @@ public class DataBlockHeaderTest {
         file = new File("DataBlockHeaderTest.testReadWrite_Channel.bin");
         Path path = file.toPath();
         channel1 = Files.newByteChannel(path, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-//        channel1.position(startPointer + 5000);
-//        buffer0.flip();
-//        channel1.write(buffer0);
-
         channel2 = Files.newByteChannel(path, StandardOpenOption.READ);
         // ============
         // When
@@ -114,12 +110,12 @@ public class DataBlockHeaderTest {
         // Then
         assertThat(givenHeader.getStartPointer()).isEqualTo(whenHeader.getStartPointer());
         assertThat(givenHeader.getDataBlockCapacity()).isEqualTo(whenHeader.getDataBlockCapacity());
-        assertThat(givenHeader.getDataBlockOccupied()).isEqualTo(whenHeader.getDataBlockOccupied());
+        assertThat(givenHeader.getOccupiedBytes()).isEqualTo(whenHeader.getOccupiedBytes());
         assertThat(givenHeader.getStartDataPointer()).isEqualTo(whenHeader.getStartDataPointer());
 
         assertThat(givenHeader.getStartPointer()).isEqualTo(startPointer);
         assertThat(givenHeader.getDataBlockCapacity()).isEqualTo(dataBlockCapacity);
-        assertThat(givenHeader.getDataBlockOccupied()).isEqualTo(dataBlockOccupied);
+        assertThat(givenHeader.getOccupiedBytes()).isEqualTo(occupiedBytes);
         assertThat(givenHeader.getStartDataPointer()).isEqualTo(startDataPointer);
     }
 

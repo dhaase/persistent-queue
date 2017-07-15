@@ -1,5 +1,6 @@
 package eu.dirk.haase.io.storage.record.header;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
@@ -9,14 +10,16 @@ final public class DataBlockHeader extends AbstractHeader {
 
 
     private final static int SUB_HEADER_LENGTH;
+    private final static StorageHeader storageHeader = new StorageHeader();
 
     static {
         int headerLength = 0;
 
-        // Sub-Layout of the AbstractHeader (first Layout-Part see AbstractHeader.SUB_HEADER_LENGTH)
+        // Sub-Layout of the AbstractHeader
+        // (first Layout-Part see AbstractHeader.SUB_HEADER_LENGTH)
         headerLength += 8; // size of long for startDataPointer
         headerLength += 4; // size of int for dataBlockCapacity
-        headerLength += 4; // size of int for dataBlockOccupied
+        headerLength += 4; // size of int for occupiedBytes
 
         SUB_HEADER_LENGTH = headerLength;
     }
@@ -32,7 +35,8 @@ final public class DataBlockHeader extends AbstractHeader {
     /**
      * Overall occupied bytes of the current block.
      */
-    private int dataBlockOccupied;
+    private int occupiedBytes;
+
     /**
      * Creates a fresh DataBlockHeader.
      */
@@ -41,11 +45,39 @@ final public class DataBlockHeader extends AbstractHeader {
     }
 
     @Override
+    protected void checkConsistency() throws IOException {
+        super.checkConsistency();
+        long storageHeaderEnd = (storageHeader.getStartPointer() + storageHeader.getHeaderLength());
+        if (startDataPointer < storageHeaderEnd) {
+            throw new IOException("startDataPointer can not be "
+                    + " within the storage-header"
+                    + ": DataBlockHeader.startDataPointer is currently "
+                    + startDataPointer
+                    + " and storage-header ends at "
+                    + storageHeaderEnd);
+
+        }
+        if (dataBlockCapacity < 0) {
+            throw new IOException("dataBlockCapacity can not be below 0:" +
+                    " dataBlockCapacity is currently "
+                    + dataBlockCapacity);
+
+        }
+        if (occupiedBytes < 0) {
+            throw new IOException("occupiedBytes can not be below 0:" +
+                    " occupiedBytes is currently "
+                    + occupiedBytes);
+
+        }
+    }
+
+
+    @Override
     public void write(ByteBuffer buffer) {
         super.write(buffer);
         buffer.putLong(startDataPointer);
         buffer.putInt(dataBlockCapacity);
-        buffer.putInt(dataBlockOccupied);
+        buffer.putInt(occupiedBytes);
     }
 
     @Override
@@ -53,7 +85,7 @@ final public class DataBlockHeader extends AbstractHeader {
         super.read(buffer);
         startDataPointer = buffer.getLong();
         dataBlockCapacity = buffer.getInt();
-        dataBlockOccupied = buffer.getInt();
+        occupiedBytes = buffer.getInt();
     }
 
     public long getStartDataPointer() {
@@ -72,12 +104,12 @@ final public class DataBlockHeader extends AbstractHeader {
         this.dataBlockCapacity = dataBlockCapacity;
     }
 
-    public int getDataBlockOccupied() {
-        return dataBlockOccupied;
+    public int getOccupiedBytes() {
+        return occupiedBytes;
     }
 
-    public void setDataBlockOccupied(int dataBlockOccupied) {
-        this.dataBlockOccupied = dataBlockOccupied;
+    public void setOccupiedBytes(int occupiedBytes) {
+        this.occupiedBytes = occupiedBytes;
     }
 
     @Override

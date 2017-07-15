@@ -64,7 +64,7 @@ public abstract class AbstractHeader {
      */
     public void write(SeekableByteChannel channel, ByteBuffer source) throws IOException {
         // Sets the channel's position to the Header's first byte.
-        seek(channel);
+        seek(channel, true);
         // Initialize the given buffer.
         source.clear();
         write(source);
@@ -72,7 +72,8 @@ public abstract class AbstractHeader {
         source.flip();
         int bytesWritten = channel.write(source);
         if (bytesWritten != headerLength) {
-            throw new IOException("Insufficient number of bytes written: Count of bytes currently written "
+            throw new IOException("Insufficient number of bytes written:" +
+                    " Count of bytes currently written "
                     + bytesWritten
                     + ", but expected amount is "
                     + headerLength);
@@ -89,14 +90,15 @@ public abstract class AbstractHeader {
     public void read(SeekableByteChannel channel, ByteBuffer target) throws IOException {
         long prevStartPointer = getStartPointer();
         // Sets the channel's position to the Header's first byte.
-        seek(channel);
+        seek(channel, false);
         // Prepare ByteBuffer
         target.clear();
         target.limit(headerLength);
         // Read the content of the entity, to which this channel is connected, into the buffer.
         int bytesRead = channel.read(target);
         if (bytesRead != headerLength) {
-            throw new IOException("Insufficient number of bytes read: Count of bytes currently read "
+            throw new IOException("Insufficient number of bytes read:" +
+                    " Count of bytes currently read "
                     + bytesRead
                     + ", but expected amount is "
                     + headerLength);
@@ -104,14 +106,29 @@ public abstract class AbstractHeader {
         // Initialize this Header.
         target.flip();
         read(target);
-        // Validate the content of entity
-        if (prevStartPointer != getStartPointer()) {
-            throw new IOException("Unexpected change of StartPointer: StartPointer was before "
+        checkConsistency(prevStartPointer);
+    }
+
+    private void checkConsistency(long prevStartPointer) throws IOException {
+        checkConsistency();
+        if (prevStartPointer != startPointer) {
+            throw new IOException("Unexpected change of StartPointer:" +
+                    " StartPointer was before "
                     + prevStartPointer
                     + ", but is now "
                     + getStartPointer());
         }
     }
+
+
+    protected void checkConsistency() throws IOException {
+        if (startPointer < 0) {
+            throw new IOException("startPointer can not be below 0: startPointer is currently "
+                    + startPointer);
+
+        }
+    }
+
 
     /**
      * Sets the channel's position to this Header's first byte.
@@ -119,8 +136,10 @@ public abstract class AbstractHeader {
      * @param channel
      * @throws IOException
      */
-    public void seek(SeekableByteChannel channel) throws IOException {
-        growAsNeeded(channel);
+    public void seek(SeekableByteChannel channel, boolean isWriting) throws IOException {
+        if (isWriting) {
+            growAsNeeded(channel);
+        }
         channel.position(getStartPointer());
     }
 
@@ -140,7 +159,8 @@ public abstract class AbstractHeader {
                 endMark.flip();
                 channel.write(endMark);
             } else {
-                throw new IOException("Unable to seek beyond the current size: Current size is "
+                throw new IOException("Unable to seek beyond the current size:" +
+                        " Current size is "
                         + channel.size()
                         + ", but requested size was "
                         + minRequiredBytes
