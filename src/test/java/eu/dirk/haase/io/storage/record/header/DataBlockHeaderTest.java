@@ -99,9 +99,9 @@ public class DataBlockHeaderTest {
         file = new File("DataBlockHeaderTest.testReadWrite_Channel.bin");
         Path path = file.toPath();
         channel1 = Files.newByteChannel(path, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-        channel1.position(startPointer + 5000);
-        buffer0.flip();
-        channel1.write(buffer0);
+//        channel1.position(startPointer + 5000);
+//        buffer0.flip();
+//        channel1.write(buffer0);
 
         channel2 = Files.newByteChannel(path, StandardOpenOption.READ);
         // ============

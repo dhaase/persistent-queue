@@ -29,6 +29,8 @@ public abstract class AbstractHeader {
      */
     private long startPointer;
 
+    private final boolean isGrowingAsNeeded = true;
+
     protected AbstractHeader(int subHeaderLength) {
         this.headerLength = HEADER_LENGTH + subHeaderLength;
     }
@@ -99,10 +101,37 @@ public abstract class AbstractHeader {
 
     /**
      * Sets the channel's position to this Header's first byte.
+     *
      * @param channel
      * @throws IOException
      */
     public void seek(SeekableByteChannel channel) throws IOException {
+        growAsNeeded(channel);
         channel.position(getStartPointer());
+    }
+
+    /**
+     * Sets the channel's position to this Header's first byte.
+     *
+     * @param channel
+     * @throws IOException
+     */
+    public void growAsNeeded(SeekableByteChannel channel) throws IOException {
+        long minRequiredBytes = startPointer + headerLength;
+        if (minRequiredBytes > channel.size()) {
+            if (isGrowingAsNeeded) {
+                channel.position(minRequiredBytes);
+                ByteBuffer endMark = ByteBuffer.allocate(4);
+                endMark.putInt(1);
+                endMark.flip();
+                channel.write(endMark);
+            } else {
+                throw new IOException("Unable to seek beyond the current size: Current size is "
+                        + channel.size()
+                        + ", but requested size was "
+                        + minRequiredBytes
+                        + " bytes.");
+            }
+        }
     }
 }
