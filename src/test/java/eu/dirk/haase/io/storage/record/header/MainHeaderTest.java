@@ -50,9 +50,9 @@ public class MainHeaderTest {
         int dataBlockCount = 12;
         int minDataBlockLength = 23;
         int maxDataBlockLength = 45;
-        givenHeader.setDataBlockCount(dataBlockCount);
-        givenHeader.setMinDataBlockLength(minDataBlockLength);
-        givenHeader.setMaxDataBlockLength(maxDataBlockLength);
+        givenHeader.setRecordCount(dataBlockCount);
+        givenHeader.setMinRecordDataLength(minDataBlockLength);
+        givenHeader.setMaxRecordDataLength(maxDataBlockLength);
         // ============
         // When
         givenHeader.write(buffer);
@@ -67,13 +67,13 @@ public class MainHeaderTest {
 
         assertThat(givenHeader.getVersion()).isEqualTo(whenHeader.getVersion());
         assertThat(givenHeader.getStartPointer()).isEqualTo(whenHeader.getStartPointer());
-        assertThat(givenHeader.getDataBlockCount()).isEqualTo(whenHeader.getDataBlockCount());
-        assertThat(givenHeader.getMinDataBlockLength()).isEqualTo(whenHeader.getMinDataBlockLength());
-        assertThat(givenHeader.getMaxDataBlockLength()).isEqualTo(whenHeader.getMaxDataBlockLength());
+        assertThat(givenHeader.getRecordCount()).isEqualTo(whenHeader.getRecordCount());
+        assertThat(givenHeader.getMinRecordDataLength()).isEqualTo(whenHeader.getMinRecordDataLength());
+        assertThat(givenHeader.getMaxRecordDataLength()).isEqualTo(whenHeader.getMaxRecordDataLength());
 
-        assertThat(givenHeader.getDataBlockCount()).isEqualTo(dataBlockCount);
-        assertThat(givenHeader.getMinDataBlockLength()).isEqualTo(minDataBlockLength);
-        assertThat(givenHeader.getMaxDataBlockLength()).isEqualTo(maxDataBlockLength);
+        assertThat(givenHeader.getRecordCount()).isEqualTo(dataBlockCount);
+        assertThat(givenHeader.getMinRecordDataLength()).isEqualTo(minDataBlockLength);
+        assertThat(givenHeader.getMaxRecordDataLength()).isEqualTo(maxDataBlockLength);
     }
 
 
@@ -86,9 +86,9 @@ public class MainHeaderTest {
         int dataBlockCount = 12;
         int minDataBlockLength = 23;
         int maxDataBlockLength = 45;
-        givenHeader.setDataBlockCount(dataBlockCount);
-        givenHeader.setMinDataBlockLength(minDataBlockLength);
-        givenHeader.setMaxDataBlockLength(maxDataBlockLength);
+        givenHeader.setRecordCount(dataBlockCount);
+        givenHeader.setMinRecordDataLength(minDataBlockLength);
+        givenHeader.setMaxRecordDataLength(maxDataBlockLength);
 
         ByteBuffer buffer1 = ByteBuffer.allocate(byteBufferCapacity);
         ByteBuffer buffer2 = ByteBuffer.allocate(byteBufferCapacity);
@@ -110,13 +110,13 @@ public class MainHeaderTest {
 
         assertThat(givenHeader.getVersion()).isEqualTo(whenHeader.getVersion());
         assertThat(givenHeader.getStartPointer()).isEqualTo(whenHeader.getStartPointer());
-        assertThat(givenHeader.getDataBlockCount()).isEqualTo(whenHeader.getDataBlockCount());
-        assertThat(givenHeader.getMinDataBlockLength()).isEqualTo(whenHeader.getMinDataBlockLength());
-        assertThat(givenHeader.getMaxDataBlockLength()).isEqualTo(whenHeader.getMaxDataBlockLength());
+        assertThat(givenHeader.getRecordCount()).isEqualTo(whenHeader.getRecordCount());
+        assertThat(givenHeader.getMinRecordDataLength()).isEqualTo(whenHeader.getMinRecordDataLength());
+        assertThat(givenHeader.getMaxRecordDataLength()).isEqualTo(whenHeader.getMaxRecordDataLength());
 
-        assertThat(givenHeader.getDataBlockCount()).isEqualTo(dataBlockCount);
-        assertThat(givenHeader.getMinDataBlockLength()).isEqualTo(minDataBlockLength);
-        assertThat(givenHeader.getMaxDataBlockLength()).isEqualTo(maxDataBlockLength);
+        assertThat(givenHeader.getRecordCount()).isEqualTo(dataBlockCount);
+        assertThat(givenHeader.getMinRecordDataLength()).isEqualTo(minDataBlockLength);
+        assertThat(givenHeader.getMaxRecordDataLength()).isEqualTo(maxDataBlockLength);
     }
 
 }

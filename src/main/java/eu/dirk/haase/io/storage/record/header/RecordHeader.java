@@ -10,6 +10,7 @@ import java.sql.Timestamp;
 final public class RecordHeader extends AbstractHeader {
 
     private final static String TIMESTAMP_STR = "2017-01-01 00:00:00";
+
     private final static long MIN_TIMESTAMP = Timestamp.valueOf(TIMESTAMP_STR).getTime();
 
     private final static int SUB_HEADER_LENGTH;
@@ -22,8 +23,9 @@ final public class RecordHeader extends AbstractHeader {
         // Sub-Layout of the AbstractHeader
         // (first Layout-Part see AbstractHeader.HEADER_LENGTH)
         headerLength += 8; // size of long for startDataPointer
-        headerLength += 4; // size of int for dataBlockCapacity
-        headerLength += 4; // size of int for occupiedBytes
+        headerLength += 4; // size of int for recordDataCapacity
+        headerLength += 4; // size of int for recordDataLength
+        headerLength += 4; // size of int for recordIndex
         headerLength += 8; // size of int for lastModifiedTimeMillis
 
         SUB_HEADER_LENGTH = headerLength;
@@ -36,11 +38,11 @@ final public class RecordHeader extends AbstractHeader {
     /**
      * Overall byte capacity of the current block.
      */
-    private int dataBlockCapacity;
+    private int recordDataCapacity;
     /**
      * Overall occupied bytes of the current block.
      */
-    private int occupiedBytes;
+    private int recordDataLength;
     /**
      * The last modified timestamp in milliseconds.
      * <p>
@@ -49,11 +51,57 @@ final public class RecordHeader extends AbstractHeader {
     private long lastModifiedTimeMillis;
 
     /**
+     * Index position of the Record.
+     */
+    private int recordIndex;
+
+    /**
      * Creates a fresh RecordHeader.
      */
     public RecordHeader() {
         super(SUB_HEADER_LENGTH);
         lastModifiedTimeMillis = System.currentTimeMillis();
+        setStartPointer(MAIN_HEADER.getHeaderLength() + MAIN_HEADER.getStartPointer());
+        setStartDataPointer(getHeaderLength() + getStartPointer());
+        setRecordDataCapacity(0);
+        setRecordDataLength(0);
+        setRecordIndex(0);
+    }
+
+    public int incrementRecordIndex() {
+        return ++recordIndex;
+    }
+
+    public RecordHeader advanceRecordHeader() {
+        RecordHeader nextRecordHeader = new RecordHeader();
+
+        nextRecordHeader.setStartPointer(getEndPointer());
+        nextRecordHeader.setStartDataPointer(getHeaderLength() + getStartPointer());
+        nextRecordHeader.setRecordDataCapacity(0);
+        nextRecordHeader.setRecordDataLength(0);
+        nextRecordHeader.setRecordIndex(getRecordIndex() + 1);
+
+        return nextRecordHeader;
+    }
+
+
+    public boolean hasRoomForNext(long overallSize) {
+        long nextStartPointer = getEndPointer();
+        long nextStartDataPointer = getHeaderLength() + nextStartPointer;
+        return (nextStartDataPointer < overallSize);
+    }
+
+
+    public int getRecordIndex() {
+        return recordIndex;
+    }
+
+    public void setRecordIndex(int recordIndex) {
+        this.recordIndex = recordIndex;
+    }
+
+    public boolean isEmpty() {
+        return recordDataLength == 0;
     }
 
     public long getLastModifiedTimeMillis() {
@@ -72,16 +120,16 @@ final public class RecordHeader extends AbstractHeader {
                     + " and MainHeader ends at "
                     + storageHeaderEnd);
         }
-        if (dataBlockCapacity < 0) {
-            throw new IOException("dataBlockCapacity can not be below 0:" +
-                    " dataBlockCapacity is currently "
-                    + dataBlockCapacity);
+        if (recordDataCapacity < 0) {
+            throw new IOException("recordDataCapacity can not be below 0:" +
+                    " recordDataCapacity is currently "
+                    + recordDataCapacity);
 
         }
-        if (occupiedBytes < 0) {
-            throw new IOException("occupiedBytes can not be below 0:" +
-                    " occupiedBytes is currently "
-                    + occupiedBytes);
+        if (recordDataLength < 0) {
+            throw new IOException("recordDataLength can not be below 0:" +
+                    " recordDataLength is currently "
+                    + recordDataLength);
 
         }
         if (lastModifiedTimeMillis < MIN_TIMESTAMP) {
@@ -99,8 +147,9 @@ final public class RecordHeader extends AbstractHeader {
     public void write(ByteBuffer buffer) {
         super.write(buffer);
         buffer.putLong(startDataPointer);
-        buffer.putInt(dataBlockCapacity);
-        buffer.putInt(occupiedBytes);
+        buffer.putInt(recordDataCapacity);
+        buffer.putInt(recordDataLength);
+        buffer.putInt(recordIndex);
         buffer.putLong(System.currentTimeMillis());
     }
 
@@ -108,8 +157,9 @@ final public class RecordHeader extends AbstractHeader {
     public void read(ByteBuffer buffer) {
         super.read(buffer);
         startDataPointer = buffer.getLong();
-        dataBlockCapacity = buffer.getInt();
-        occupiedBytes = buffer.getInt();
+        recordDataCapacity = buffer.getInt();
+        recordDataLength = buffer.getInt();
+        recordIndex = buffer.getInt();
         lastModifiedTimeMillis = buffer.getLong();
     }
 
@@ -121,24 +171,29 @@ final public class RecordHeader extends AbstractHeader {
         this.startDataPointer = startDataPointer;
     }
 
-    public int getDataBlockCapacity() {
-        return dataBlockCapacity;
+    public int getRecordDataCapacity() {
+        return recordDataCapacity;
     }
 
-    public void setDataBlockCapacity(int dataBlockCapacity) {
-        this.dataBlockCapacity = dataBlockCapacity;
+    public void setRecordDataCapacity(int recordDataCapacity) {
+        this.recordDataCapacity = recordDataCapacity;
     }
 
-    public int getOccupiedBytes() {
-        return occupiedBytes;
+    public int getRecordDataLength() {
+        return recordDataLength;
     }
 
-    public void setOccupiedBytes(int occupiedBytes) {
-        this.occupiedBytes = occupiedBytes;
+    public void setRecordDataLength(int recordDataLength) {
+        this.recordDataLength = recordDataLength;
     }
 
     @Override
-    protected void setStartPointer(long startPointer) {
+    public void setStartPointer(long startPointer) {
         super.setStartPointer(startPointer);
     }
+
+    public long getEndPointer() {
+        return getStartDataPointer() + getRecordDataCapacity();
+    }
+
 }

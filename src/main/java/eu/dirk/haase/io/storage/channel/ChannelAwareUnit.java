@@ -14,7 +14,7 @@ public abstract class ChannelAwareUnit {
 
     private final boolean isGrowingAsNeeded = true;
 
-    private long minRequiredPosition;
+    private long minRequiredEndPosition;
     private int expectedSize;
     private long currentPosition;
 
@@ -22,8 +22,8 @@ public abstract class ChannelAwareUnit {
         this.expectedSize = expectedSize;
     }
 
-    public void setMinRequiredPosition(long minRequiredPosition) {
-        this.minRequiredPosition = minRequiredPosition;
+    public void setMinRequiredEndPosition(long minRequiredEndPosition) {
+        this.minRequiredEndPosition = minRequiredEndPosition;
     }
 
     public void setCurrentPosition(long currentPosition) {
@@ -37,7 +37,7 @@ public abstract class ChannelAwareUnit {
      * @param source
      * @throws IOException
      */
-    public void writeAt(SeekableByteChannel channel, ByteBuffer source) throws IOException {
+    protected void write(SeekableByteChannel channel, ByteBuffer source) throws IOException {
         checkConsistency();
         // Sets the channel's position to the Header's first byte.
         seek(channel, true);
@@ -66,7 +66,7 @@ public abstract class ChannelAwareUnit {
      * @param target
      * @throws IOException
      */
-    public void readAt(SeekableByteChannel channel, ByteBuffer target) throws IOException {
+    protected void read(SeekableByteChannel channel, ByteBuffer target) throws IOException {
         long prevStartPointer = currentPosition;
         // Sets the channel's position to the Header's first byte.
         seek(channel, false);
@@ -91,7 +91,18 @@ public abstract class ChannelAwareUnit {
 
     abstract protected void checkConsistency() throws IOException;
 
-    abstract protected void checkConsistency(long prevStartPointer) throws IOException;
+    protected void checkConsistency(long prevStartPointer) throws IOException {
+        checkConsistency();
+        if (prevStartPointer != getStartPointer()) {
+            throw new IOException("Unexpected change of StartPointer:" +
+                    " StartPointer was before "
+                    + prevStartPointer
+                    + ", but is now "
+                    + getStartPointer());
+        }
+    }
+
+    abstract public long getStartPointer();
 
     abstract protected void write(ByteBuffer buffer);
 
@@ -103,7 +114,7 @@ public abstract class ChannelAwareUnit {
      * @param channel
      * @throws IOException
      */
-    public void seek(SeekableByteChannel channel, boolean isWriting) throws IOException {
+    protected void seek(SeekableByteChannel channel, boolean isWriting) throws IOException {
         if (isWriting) {
             growAsNeeded(channel);
         }
@@ -117,10 +128,10 @@ public abstract class ChannelAwareUnit {
      * @param channel
      * @throws IOException
      */
-    public void growAsNeeded(SeekableByteChannel channel) throws IOException {
-        if (minRequiredPosition > channel.size()) {
+    private void growAsNeeded(SeekableByteChannel channel) throws IOException {
+        if (minRequiredEndPosition > channel.size()) {
             if (isGrowingAsNeeded) {
-                channel.position(minRequiredPosition);
+                channel.position(minRequiredEndPosition);
                 ByteBuffer endMark = ByteBuffer.allocate(4);
                 endMark.putInt(1);
                 endMark.flip();
@@ -130,7 +141,7 @@ public abstract class ChannelAwareUnit {
                         " Current size is "
                         + channel.size()
                         + ", but requested position was "
-                        + minRequiredPosition
+                        + minRequiredEndPosition
                         + " bytes.");
             }
         }

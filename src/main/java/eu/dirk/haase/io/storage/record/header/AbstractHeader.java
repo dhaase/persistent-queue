@@ -4,7 +4,6 @@ import eu.dirk.haase.io.storage.channel.ChannelAwareUnit;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.channels.SeekableByteChannel;
 
 /**
@@ -42,6 +41,7 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
         return headerLength;
     }
 
+    @Override
     public long getStartPointer() {
         return startPointer;
     }
@@ -50,10 +50,12 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
         this.startPointer = startPointer;
     }
 
+    @Override
     protected void write(ByteBuffer buffer) {
         buffer.putLong(startPointer);
     }
 
+    @Override
     protected void read(ByteBuffer buffer) {
         startPointer = buffer.getLong();
     }
@@ -66,10 +68,14 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
      * @throws IOException
      */
     public void write(SeekableByteChannel channel, ByteBuffer source) throws IOException {
+        initializeForIO();
+        super.write(channel, source);
+    }
+
+    private void initializeForIO() {
         setCurrentPosition(startPointer);
-        setMinRequiredPosition(startPointer + headerLength);
+        setMinRequiredEndPosition(startPointer + headerLength);
         setExpectedSize(headerLength);
-        writeAt(channel, source);
     }
 
     /**
@@ -80,24 +86,12 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
      * @throws IOException
      */
     public void read(SeekableByteChannel channel, ByteBuffer target) throws IOException {
-        setCurrentPosition(startPointer);
-        setMinRequiredPosition(startPointer + headerLength);
-        setExpectedSize(headerLength);
-        readAt(channel, target);
-    }
-
-    protected void checkConsistency(long prevStartPointer) throws IOException {
-        checkConsistency();
-        if (prevStartPointer != startPointer) {
-            throw new IOException("Unexpected change of StartPointer:" +
-                    " StartPointer was before "
-                    + prevStartPointer
-                    + ", but is now "
-                    + getStartPointer());
-        }
+        initializeForIO();
+        super.read(channel, target);
     }
 
 
+    @Override
     protected void checkConsistency() throws IOException {
         if (startPointer < 0) {
             throw new IOException("startPointer can not be below 0: startPointer is currently "
