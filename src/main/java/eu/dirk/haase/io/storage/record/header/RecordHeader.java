@@ -2,24 +2,29 @@ package eu.dirk.haase.io.storage.record.header;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.sql.Timestamp;
 
 /**
  * Created by dhaa on 15.07.17.
  */
 final public class RecordHeader extends AbstractHeader {
 
+    private final static String TIMESTAMP_STR = "2017-01-01 00:00:00";
+    private final static long MIN_TIMESTAMP = Timestamp.valueOf(TIMESTAMP_STR).getTime();
 
     private final static int SUB_HEADER_LENGTH;
+
     private final static MainHeader MAIN_HEADER = new MainHeader();
 
     static {
         int headerLength = 0;
 
         // Sub-Layout of the AbstractHeader
-        // (first Layout-Part see AbstractHeader.SUB_HEADER_LENGTH)
+        // (first Layout-Part see AbstractHeader.HEADER_LENGTH)
         headerLength += 8; // size of long for startDataPointer
         headerLength += 4; // size of int for dataBlockCapacity
         headerLength += 4; // size of int for occupiedBytes
+        headerLength += 8; // size of int for lastModifiedTimeMillis
 
         SUB_HEADER_LENGTH = headerLength;
     }
@@ -36,12 +41,23 @@ final public class RecordHeader extends AbstractHeader {
      * Overall occupied bytes of the current block.
      */
     private int occupiedBytes;
+    /**
+     * The last modified timestamp in milliseconds.
+     * <p>
+     * Milliseconds since January 1, 1970, 00:00:00 GMT.
+     */
+    private long lastModifiedTimeMillis;
 
     /**
      * Creates a fresh RecordHeader.
      */
     public RecordHeader() {
         super(SUB_HEADER_LENGTH);
+        lastModifiedTimeMillis = System.currentTimeMillis();
+    }
+
+    public long getLastModifiedTimeMillis() {
+        return lastModifiedTimeMillis;
     }
 
     @Override
@@ -68,6 +84,14 @@ final public class RecordHeader extends AbstractHeader {
                     + occupiedBytes);
 
         }
+        if (lastModifiedTimeMillis < MIN_TIMESTAMP) {
+            throw new IOException("lastModifiedTimeMillis must be later than" +
+                    " '" + TIMESTAMP_STR +"':" +
+                    " lastModifiedTimeMillis is currently "
+                    + lastModifiedTimeMillis
+                    + "; Calculates to the Timestamp: "
+                    + new Timestamp(lastModifiedTimeMillis));
+        }
     }
 
 
@@ -77,6 +101,7 @@ final public class RecordHeader extends AbstractHeader {
         buffer.putLong(startDataPointer);
         buffer.putInt(dataBlockCapacity);
         buffer.putInt(occupiedBytes);
+        buffer.putLong(System.currentTimeMillis());
     }
 
     @Override
@@ -85,6 +110,7 @@ final public class RecordHeader extends AbstractHeader {
         startDataPointer = buffer.getLong();
         dataBlockCapacity = buffer.getInt();
         occupiedBytes = buffer.getInt();
+        lastModifiedTimeMillis = buffer.getLong();
     }
 
     public long getStartDataPointer() {

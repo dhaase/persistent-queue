@@ -14,6 +14,7 @@ import java.nio.channels.SeekableByteChannel;
  */
 public class SeekableInMemoryByteChannel implements SeekableByteChannel {
 
+    public static final byte[] ZERO_CONTENTS = new byte[0];
     /**
      * Current position; guarded by "this"
      */
@@ -34,7 +35,7 @@ public class SeekableInMemoryByteChannel implements SeekableByteChannel {
      * Creates a new instance with 0 size and 0 position, and open.
      */
     public SeekableInMemoryByteChannel() {
-        this(new byte[0]);
+        this(ZERO_CONTENTS);
     }
 
     /**
@@ -63,7 +64,10 @@ public class SeekableInMemoryByteChannel implements SeekableByteChannel {
      */
     @Override
     public void close() throws IOException {
-        this.open = false;
+        synchronized (this) {
+            this.contents = ZERO_CONTENTS;
+            this.open = false;
+        }
     }
 
     /**
