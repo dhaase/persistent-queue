@@ -7,6 +7,8 @@ import java.nio.ByteBuffer;
  */
 final public class StorageHeader extends AbstractHeader {
 
+    private final static int VERSION = 1;
+
     private final static int SUB_HEADER_LENGTH;
 
     static {
@@ -24,7 +26,7 @@ final public class StorageHeader extends AbstractHeader {
     /**
      * Structure Version of the storage unit.
      */
-    private int version;
+    private int version = VERSION;
     /**
      * Count of current blocks in the storage unit.
      */
@@ -37,10 +39,17 @@ final public class StorageHeader extends AbstractHeader {
      * Minimum length of the blocks in the storage unit.
      */
     private int minDataBlockLength;
-
     public StorageHeader() {
         super(SUB_HEADER_LENGTH);
         setStartPointer(0);
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public boolean isCompabible() {
+        return (version == VERSION);
     }
 
     @Override
