@@ -70,7 +70,13 @@ public abstract class AbstractHeader {
         write(source);
         // Write the content of the buffer to the channel.
         source.flip();
-        channel.write(source);
+        int bytesWritten = channel.write(source);
+        if (bytesWritten != headerLength) {
+            throw new IOException("Insufficient number of bytes written: Count of bytes currently written "
+                    + bytesWritten
+                    + ", but expected amount is "
+                    + headerLength);
+        }
     }
 
     /**
@@ -84,9 +90,17 @@ public abstract class AbstractHeader {
         long prevStartPointer = getStartPointer();
         // Sets the channel's position to the Header's first byte.
         seek(channel);
-        // Read the content of entity, to which this channel is connected, into the buffer.
+        // Prepare ByteBuffer
         target.clear();
-        channel.read(target);
+        target.limit(headerLength);
+        // Read the content of the entity, to which this channel is connected, into the buffer.
+        int bytesRead = channel.read(target);
+        if (bytesRead != headerLength) {
+            throw new IOException("Insufficient number of bytes read: Count of bytes currently read "
+                    + bytesRead
+                    + ", but expected amount is "
+                    + headerLength);
+        }
         // Initialize this Header.
         target.flip();
         read(target);

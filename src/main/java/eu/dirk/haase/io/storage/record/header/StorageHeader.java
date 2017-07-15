@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 final public class StorageHeader extends AbstractHeader {
 
     /**
-     * Prolog is a text for describes the origin of the storages unit.
+     * Prolog is a text which describes the origin or purpose of the storages unit (= the file).
      */
     private final static byte[] PROLOG = StorageHeader.class.getCanonicalName().getBytes();
 
@@ -19,7 +19,7 @@ final public class StorageHeader extends AbstractHeader {
     static {
         int headerLength = 0;
 
-        // Sub-Layout of the AbstractHeader (first Layout-Part see AbstractHeader.SUB_HEADER_LENGTH)
+        // Sub-Layout of the AbstractHeader (first Layout-Part see AbstractHeader.HEADER_LENGTH)
         headerLength += PROLOG.length; // size of byte[] for PROLOG
         headerLength += 4; // size of int for version
         headerLength += 4; // size of int for dataBlockCount
@@ -45,6 +45,8 @@ final public class StorageHeader extends AbstractHeader {
      * Minimum length of the blocks in the storage unit.
      */
     private int minDataBlockLength;
+
+
     public StorageHeader() {
         super(SUB_HEADER_LENGTH);
         setStartPointer(0);
