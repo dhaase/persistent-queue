@@ -49,13 +49,12 @@ final public class RecordHeader extends AbstractHeader {
         super.checkConsistency();
         long storageHeaderEnd = (MAIN_HEADER.getStartPointer() + MAIN_HEADER.getHeaderLength());
         if (startDataPointer < storageHeaderEnd) {
-            throw new IOException("startDataPointer can not be "
-                    + " within the storage-header"
-                    + ": RecordHeader.startDataPointer is currently "
+            throw new IOException("startDataPointer can not be"
+                    + " within the MainHeader"
+                    + ": RecordHeader.startDataPointer is currently at "
                     + startDataPointer
-                    + " and storage-header ends at "
+                    + " and MainHeader ends at "
                     + storageHeaderEnd);
-
         }
         if (dataBlockCapacity < 0) {
             throw new IOException("dataBlockCapacity can not be below 0:" +

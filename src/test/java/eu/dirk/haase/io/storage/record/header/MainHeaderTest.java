@@ -78,7 +78,7 @@ public class MainHeaderTest {
 
 
     @Test
-    public void testReadWrite_Channel() throws IOException {
+    public void testReadWrite_File_Channel() throws IOException {
         // ============
         // Given
         MainHeader givenHeader = new MainHeader();

@@ -12,7 +12,7 @@ import java.nio.channels.SeekableByteChannel;
  *
  * @author <a href="mailto:alr@jboss.org">Andrew Lee Rubinger</a>
  */
-class SeekableInMemoryByteChannel implements SeekableByteChannel {
+public class SeekableInMemoryByteChannel implements SeekableByteChannel {
 
     /**
      * Current position; guarded by "this"
@@ -34,13 +34,16 @@ class SeekableInMemoryByteChannel implements SeekableByteChannel {
      * Creates a new instance with 0 size and 0 position, and open.
      */
     public SeekableInMemoryByteChannel() {
-        this.open = true;
+        this(new byte[0]);
+    }
 
-        // Set fields
-        synchronized (this) {
-            this.position = 0;
-            this.contents = new byte[0];
-        }
+    /**
+     * Creates a new instance with 0 size and 0 position, and open.
+     */
+    public SeekableInMemoryByteChannel(byte[] contents) {
+        this.position = 0;
+        this.contents = contents;
+        this.open = true;
     }
 
     /**
@@ -79,7 +82,8 @@ class SeekableInMemoryByteChannel implements SeekableByteChannel {
 
         // Init
         final int spaceInBuffer = destination.remaining();
-        final int numBytesRemainingInContent, numBytesToRead;
+        final int numBytesRemainingInContent;
+        final int numBytesToRead;
         final byte[] bytesToCopy;
 
         // Sync up before getting at shared mutable state
@@ -133,7 +137,7 @@ class SeekableInMemoryByteChannel implements SeekableByteChannel {
         synchronized (this) {
 
             // Append the read contents to our internal contents
-            this.contents = this.concat(this.contents, readContents, this.position);
+            this.contents = ensureCapacity(readContents, this.position);
 
             // Increment the position of this channel
             this.position += totalBytes;
@@ -148,24 +152,29 @@ class SeekableInMemoryByteChannel implements SeekableByteChannel {
      * Creates a new array which is the concatenated result of the two inputs, at the designated position (to be filled
      * with 0x00) in the case of a gap).
      *
-     * @param input1
-     * @param input2
+     * @param readContents
      * @param position
      * @return
      */
-    private byte[] concat(final byte[] input1, final byte[] input2, final int position) {
+    private byte[] ensureCapacity(final byte[] readContents, final int position) {
         // Preconition checks
-        assert input1 != null : "Input 1 must be specified";
-        assert input2 != null : "Input 2 must be specified";
+        assert readContents != null : "Input 2 must be specified";
         assert position >= 0 : "Position must be 0 or higher";
-        // Allocate a new array of enough space (either current size or position + input2.length, whichever is greater)
-        final int newSize = position < input1.length ? input1.length + input2.length : position + input2.length;
-        final byte[] merged = new byte[newSize];
-        // Copy in the contents of input 1 with 0 offset
-        System.arraycopy(input1, 0, merged, 0, input1.length);
-        // Copy in the contents of input2 with offset the length of input 1
-        System.arraycopy(input2, 0, merged, position, input2.length);
-        return merged;
+        if ((readContents.length + position) > contents.length) {
+            // Allocate a new array of enough space (either current size or
+            // position + readContents.length, whichever is greater)
+            final int newSize = position < contents.length ? contents.length + readContents.length : position + readContents.length;
+            final byte[] merged = new byte[newSize];
+            // Copy in the contents of input 1 with 0 offset
+            System.arraycopy(contents, 0, merged, 0, contents.length);
+            // Copy in the contents of readContents with offset the length of input 1
+            System.arraycopy(readContents, 0, merged, position, readContents.length);
+            return merged;
+        } else {
+            // arraycopy args: Object src,  int  srcPos, Object dest, int destPos, int length
+            System.arraycopy(readContents, 0, contents, position, readContents.length);
+            return contents;
+        }
     }
 
     /**

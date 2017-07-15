@@ -1,5 +1,6 @@
 package eu.dirk.haase.io.storage.record.header;
 
+import eu.dirk.haase.io.storage.channel.SeekableInMemoryByteChannel;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -76,7 +77,7 @@ public class RecordHeaderTest {
     }
 
     @Test
-    public void testReadWrite_Channel() throws IOException {
+    public void testReadWrite_File_Channel() throws IOException {
         // ============
         // Given
         RecordHeader givenHeader = new RecordHeader();
@@ -91,8 +92,6 @@ public class RecordHeaderTest {
         givenHeader.setStartDataPointer(startDataPointer);
         givenHeader.setStartPointer(startPointer);
 
-        ByteBuffer buffer0 = ByteBuffer.allocate(byteBufferCapacity);
-        buffer0.putInt(1);
         ByteBuffer buffer1 = ByteBuffer.allocate(byteBufferCapacity);
         ByteBuffer buffer2 = ByteBuffer.allocate(byteBufferCapacity);
 
@@ -100,6 +99,48 @@ public class RecordHeaderTest {
         Path path = file.toPath();
         channel1 = Files.newByteChannel(path, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
         channel2 = Files.newByteChannel(path, StandardOpenOption.READ);
+        // ============
+        // When
+        RecordHeader whenHeader = new RecordHeader();
+        givenHeader.write(channel1, buffer1);
+        whenHeader.setStartPointer(startPointer);
+        whenHeader.read(channel2, buffer2);
+        // ============
+        // Then
+        assertThat(givenHeader.getStartPointer()).isEqualTo(whenHeader.getStartPointer());
+        assertThat(givenHeader.getDataBlockCapacity()).isEqualTo(whenHeader.getDataBlockCapacity());
+        assertThat(givenHeader.getOccupiedBytes()).isEqualTo(whenHeader.getOccupiedBytes());
+        assertThat(givenHeader.getStartDataPointer()).isEqualTo(whenHeader.getStartDataPointer());
+
+        assertThat(givenHeader.getStartPointer()).isEqualTo(startPointer);
+        assertThat(givenHeader.getDataBlockCapacity()).isEqualTo(dataBlockCapacity);
+        assertThat(givenHeader.getOccupiedBytes()).isEqualTo(occupiedBytes);
+        assertThat(givenHeader.getStartDataPointer()).isEqualTo(startDataPointer);
+    }
+
+
+    @Test
+    public void testReadWrite_InMemory_Channel() throws IOException {
+        // ============
+        // Given
+        RecordHeader givenHeader = new RecordHeader();
+        ByteBuffer buffer = ByteBuffer.allocate(givenHeader.getHeaderLength());
+        int byteBufferCapacity = 5000;
+        int dataBlockCapacity = 12;
+        int occupiedBytes = 45;
+        int startDataPointer = 80;
+        int startPointer = 1230;
+        givenHeader.setDataBlockCapacity(dataBlockCapacity);
+        givenHeader.setOccupiedBytes(occupiedBytes);
+        givenHeader.setStartDataPointer(startDataPointer);
+        givenHeader.setStartPointer(startPointer);
+
+        ByteBuffer buffer1 = ByteBuffer.allocate(byteBufferCapacity);
+        ByteBuffer buffer2 = ByteBuffer.allocate(byteBufferCapacity);
+
+        byte[] contents = new byte[byteBufferCapacity];
+        channel1 = new SeekableInMemoryByteChannel(contents);
+        channel2 = new SeekableInMemoryByteChannel(contents);
         // ============
         // When
         RecordHeader whenHeader = new RecordHeader();
