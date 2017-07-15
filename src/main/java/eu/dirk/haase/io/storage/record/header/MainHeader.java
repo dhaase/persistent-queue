@@ -6,12 +6,12 @@ import java.nio.ByteBuffer;
 /**
  * Created by dhaa on 15.07.17.
  */
-final public class StorageHeader extends AbstractHeader {
+final public class MainHeader extends AbstractHeader {
 
     /**
      * Prolog is a text which describes the origin or purpose of the storages unit (= the file).
      */
-    private final static byte[] PROLOG = StorageHeader.class.getCanonicalName().getBytes();
+    private final static byte[] PROLOG = MainHeader.class.getCanonicalName().getBytes();
 
     private final static int VERSION = 1;
 
@@ -49,7 +49,7 @@ final public class StorageHeader extends AbstractHeader {
     private int minDataBlockLength;
 
 
-    public StorageHeader() {
+    public MainHeader() {
         super(SUB_HEADER_LENGTH);
         setStartPointer(0);
     }

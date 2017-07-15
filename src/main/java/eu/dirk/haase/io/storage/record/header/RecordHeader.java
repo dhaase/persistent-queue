@@ -6,11 +6,11 @@ import java.nio.ByteBuffer;
 /**
  * Created by dhaa on 15.07.17.
  */
-final public class DataBlockHeader extends AbstractHeader {
+final public class RecordHeader extends AbstractHeader {
 
 
     private final static int SUB_HEADER_LENGTH;
-    private final static StorageHeader storageHeader = new StorageHeader();
+    private final static MainHeader MAIN_HEADER = new MainHeader();
 
     static {
         int headerLength = 0;
@@ -38,20 +38,20 @@ final public class DataBlockHeader extends AbstractHeader {
     private int occupiedBytes;
 
     /**
-     * Creates a fresh DataBlockHeader.
+     * Creates a fresh RecordHeader.
      */
-    public DataBlockHeader() {
+    public RecordHeader() {
         super(SUB_HEADER_LENGTH);
     }
 
     @Override
     protected void checkConsistency() throws IOException {
         super.checkConsistency();
-        long storageHeaderEnd = (storageHeader.getStartPointer() + storageHeader.getHeaderLength());
+        long storageHeaderEnd = (MAIN_HEADER.getStartPointer() + MAIN_HEADER.getHeaderLength());
         if (startDataPointer < storageHeaderEnd) {
             throw new IOException("startDataPointer can not be "
                     + " within the storage-header"
-                    + ": DataBlockHeader.startDataPointer is currently "
+                    + ": RecordHeader.startDataPointer is currently "
                     + startDataPointer
                     + " and storage-header ends at "
                     + storageHeaderEnd);

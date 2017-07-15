@@ -8,7 +8,6 @@ import org.junit.runners.BlockJUnit4ClassRunner;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Created by dhaa on 14.07.17.
  */
 @RunWith(BlockJUnit4ClassRunner.class)
-public class DataBlockHeaderTest {
+public class RecordHeaderTest {
 
     private SeekableByteChannel channel1;
     private SeekableByteChannel channel2;
@@ -47,7 +46,7 @@ public class DataBlockHeaderTest {
     public void testReadWrite_ByteBuffer() {
         // ============
         // Given
-        DataBlockHeader givenHeader = new DataBlockHeader();
+        RecordHeader givenHeader = new RecordHeader();
         ByteBuffer buffer = ByteBuffer.allocate(givenHeader.getHeaderLength());
         int dataBlockCapacity = 12;
         int occupiedBytes = 45;
@@ -59,7 +58,7 @@ public class DataBlockHeaderTest {
         givenHeader.setStartPointer(startPointer);
         // ============
         // When
-        DataBlockHeader whenHeader = new DataBlockHeader();
+        RecordHeader whenHeader = new RecordHeader();
         givenHeader.write(buffer);
         buffer.flip();
         whenHeader.read(buffer);
@@ -80,8 +79,9 @@ public class DataBlockHeaderTest {
     public void testReadWrite_Channel() throws IOException {
         // ============
         // Given
-        DataBlockHeader givenHeader = new DataBlockHeader();
+        RecordHeader givenHeader = new RecordHeader();
         ByteBuffer buffer = ByteBuffer.allocate(givenHeader.getHeaderLength());
+        int byteBufferCapacity = 5000;
         int dataBlockCapacity = 12;
         int occupiedBytes = 45;
         int startDataPointer = 80;
@@ -91,18 +91,18 @@ public class DataBlockHeaderTest {
         givenHeader.setStartDataPointer(startDataPointer);
         givenHeader.setStartPointer(startPointer);
 
-        ByteBuffer buffer0 = ByteBuffer.allocate(givenHeader.getHeaderLength());
+        ByteBuffer buffer0 = ByteBuffer.allocate(byteBufferCapacity);
         buffer0.putInt(1);
-        ByteBuffer buffer1 = ByteBuffer.allocate(givenHeader.getHeaderLength());
-        ByteBuffer buffer2 = ByteBuffer.allocate(givenHeader.getHeaderLength());
+        ByteBuffer buffer1 = ByteBuffer.allocate(byteBufferCapacity);
+        ByteBuffer buffer2 = ByteBuffer.allocate(byteBufferCapacity);
 
-        file = new File("DataBlockHeaderTest.testReadWrite_Channel.bin");
+        file = new File("RecordHeaderTest.testReadWrite_Channel.bin");
         Path path = file.toPath();
         channel1 = Files.newByteChannel(path, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
         channel2 = Files.newByteChannel(path, StandardOpenOption.READ);
         // ============
         // When
-        DataBlockHeader whenHeader = new DataBlockHeader();
+        RecordHeader whenHeader = new RecordHeader();
         givenHeader.write(channel1, buffer1);
         whenHeader.setStartPointer(startPointer);
         whenHeader.read(channel2, buffer2);

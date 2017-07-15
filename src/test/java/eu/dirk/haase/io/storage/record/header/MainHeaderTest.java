@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Created by dhaa on 14.07.17.
  */
 @RunWith(BlockJUnit4ClassRunner.class)
-public class StorageHeaderTest {
+public class MainHeaderTest {
 
     private SeekableByteChannel channel1;
     private SeekableByteChannel channel2;
@@ -45,7 +45,7 @@ public class StorageHeaderTest {
     public void testReadWrite_ByteBuffer() {
         // ============
         // Given
-        StorageHeader givenHeader = new StorageHeader();
+        MainHeader givenHeader = new MainHeader();
         ByteBuffer buffer = ByteBuffer.allocate(givenHeader.getHeaderLength());
         int dataBlockCount = 12;
         int minDataBlockLength = 23;
@@ -56,7 +56,7 @@ public class StorageHeaderTest {
         // ============
         // When
         givenHeader.write(buffer);
-        StorageHeader whenHeader = new StorageHeader();
+        MainHeader whenHeader = new MainHeader();
         buffer.flip();
         whenHeader.read(buffer);
         // ============
@@ -81,7 +81,8 @@ public class StorageHeaderTest {
     public void testReadWrite_Channel() throws IOException {
         // ============
         // Given
-        StorageHeader givenHeader = new StorageHeader();
+        MainHeader givenHeader = new MainHeader();
+        int byteBufferCapacity = 5000;
         int dataBlockCount = 12;
         int minDataBlockLength = 23;
         int maxDataBlockLength = 45;
@@ -89,16 +90,16 @@ public class StorageHeaderTest {
         givenHeader.setMinDataBlockLength(minDataBlockLength);
         givenHeader.setMaxDataBlockLength(maxDataBlockLength);
 
-        ByteBuffer buffer1 = ByteBuffer.allocate(givenHeader.getHeaderLength());
-        ByteBuffer buffer2 = ByteBuffer.allocate(givenHeader.getHeaderLength());
+        ByteBuffer buffer1 = ByteBuffer.allocate(byteBufferCapacity);
+        ByteBuffer buffer2 = ByteBuffer.allocate(byteBufferCapacity);
 
-        file = new File("StorageHeaderTest.testReadWrite_Channel.bin");
+        file = new File("MainHeaderTest.testReadWrite_Channel.bin");
         Path path = file.toPath();
         channel1 = Files.newByteChannel(path, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
         channel2 = Files.newByteChannel(path, StandardOpenOption.READ);
         // ============
         // When
-        StorageHeader whenHeader = new StorageHeader();
+        MainHeader whenHeader = new MainHeader();
         givenHeader.write(channel1, buffer1);
         whenHeader.read(channel2, buffer2);
         // ============
