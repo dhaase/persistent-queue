@@ -7,6 +7,11 @@ import java.nio.ByteBuffer;
  */
 final public class StorageHeader extends AbstractHeader {
 
+    /**
+     * Prolog is a text for describes the origin of the storages unit.
+     */
+    private final static byte[] PROLOG = StorageHeader.class.getCanonicalName().getBytes();
+
     private final static int VERSION = 1;
 
     private final static int SUB_HEADER_LENGTH;
@@ -15,6 +20,7 @@ final public class StorageHeader extends AbstractHeader {
         int headerLength = 0;
 
         // Sub-Layout of the AbstractHeader (first Layout-Part see AbstractHeader.SUB_HEADER_LENGTH)
+        headerLength += PROLOG.length; // size of byte[] for PROLOG
         headerLength += 4; // size of int for version
         headerLength += 4; // size of int for dataBlockCount
         headerLength += 4; // size of int for maxDataBlockLength
@@ -55,6 +61,7 @@ final public class StorageHeader extends AbstractHeader {
     @Override
     public void write(ByteBuffer buffer) {
         super.write(buffer);
+        buffer.put(PROLOG);
         buffer.putInt(version);
         buffer.putInt(dataBlockCount);
         buffer.putInt(maxDataBlockLength);
@@ -64,6 +71,8 @@ final public class StorageHeader extends AbstractHeader {
     @Override
     public void read(ByteBuffer buffer) {
         super.read(buffer);
+        // Skip prolog - never read
+        buffer.position(buffer.position() + PROLOG.length);
         version = buffer.getInt();
         dataBlockCount = buffer.getInt();
         maxDataBlockLength = buffer.getInt();
