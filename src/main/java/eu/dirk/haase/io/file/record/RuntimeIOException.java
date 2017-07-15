@@ -1,4 +1,4 @@
-package hamner.db;
+package eu.dirk.haase.io.file.record;
 
 /**
  * Created by dhaa on 14.07.17.

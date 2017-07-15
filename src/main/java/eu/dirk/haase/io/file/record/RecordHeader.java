@@ -1,4 +1,4 @@
-package hamner.db;
+package eu.dirk.haase.io.file.record;
 
 import java.io.DataInput;
 import java.io.DataOutput;
