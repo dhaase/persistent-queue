@@ -10,17 +10,17 @@ import java.util.Iterator;
 public abstract class BaseRecordsFile {
 
     // Total length in bytes of the global database headers.
-    private static final int FILE_HEADERS_REGION_LENGTH = 16;
+    public static final int FILE_HEADERS_REGION_LENGTH = 16;
     // Number of bytes in the record header.
-    private static final int RECORD_HEADER_LENGTH = 16;
+    public static final int RECORD_HEADER_LENGTH = 16;
     // The length of a key in the index.
-    private static final int MAX_KEY_LENGTH = 64;
+    public static final int MAX_KEY_LENGTH = 64;
     // The total length of one index entry - the key length plus the record header length.
-    private static final int INDEX_ENTRY_LENGTH = MAX_KEY_LENGTH + RECORD_HEADER_LENGTH;
+    public static final int INDEX_ENTRY_LENGTH = MAX_KEY_LENGTH + RECORD_HEADER_LENGTH;
     // File pointer to the num records header.
-    private static final long NUM_RECORDS_HEADER_LOCATION = 0;
+    public static final long NUM_RECORDS_HEADER_LOCATION = 0;
     // File pointer to the data start pointer header.
-    private static final long DATA_START_HEADER_LOCATION = 4;
+    public static final long DATA_START_HEADER_LOCATION = 4;
     // Current file pointer to the start of the record data.
     private long dataStartPtr;
     // The database file.
@@ -69,17 +69,17 @@ public abstract class BaseRecordsFile {
      * Checks there is a record with the given key.
      */
     public boolean recordExists(String key) throws IOException {
-        return (keyToRecordHeader(key) != null);
+        return (findRecordHeader(key) != null);
     }
 
     /**
      * Locates space for a new record of dataLength size and initializes a RecordHeader.
      */
-    protected RecordHeader allocateRecord(String key, int dataLength) throws IOException {
+    protected RecordHeader allocateRecord(RandomAccessFile file, String key, int indexPosition, int dataLength) throws IOException {
         // append record to end of file - grows file to allocate space
         long fp = getFileLength();
         setFileLength(fp + dataLength);
-        return new RecordHeader(key, fp, dataLength);
+        return new RecordHeader(key, indexPosition, fp, dataLength, 0);
     }
 
     /**
@@ -87,11 +87,11 @@ public abstract class BaseRecordsFile {
      * in the file is part of the record data of the RecordHeader which is returned.  Returns null if
      * the location is not part of a record. (O(n) mem accesses)
      */
-    protected RecordHeader findRecordHeaderAt(long targetFp) throws IOException {
+    protected RecordHeader findRecordHeaderAtDataPointer(long targetDataPointer) throws IOException {
         Iterator<RecordHeader> e = recordHeaderIterator();
         while (e.hasNext()) {
             RecordHeader next = e.next();
-            if ((targetFp >= next.dataPointer) && (targetFp < (next.dataPointer + (long) next.dataCapacity))) {
+            if (next.isDataPointerWithinHeader(targetDataPointer)) {
                 return next;
             }
         }
@@ -151,43 +151,8 @@ public abstract class BaseRecordsFile {
      * Returns a file pointer in the index pointing to the first byte
      * in the record pointer located at the given index position.
      */
-    long indexPositionToRecordHeaderFp(int pos) {
+    protected long indexPositionToRecordHeaderFp(int pos) {
         return indexPositionToKeyFp(pos) + MAX_KEY_LENGTH;
-    }
-
-    /**
-     * Reads the ith key from the index.
-     */
-    protected String readKeyFromIndex(int position) {
-        try {
-            file.seek(indexPositionToKeyFp(position));
-            return file.readUTF();
-        } catch (Exception ex) {
-            throw new RuntimeIOException(ex.toString(), ex);
-        }
-    }
-
-    /**
-     * Reads the ith record header from the index.
-     */
-    protected RecordHeader readRecordHeaderFromIndex(int position) {
-        try {
-            String key = readKeyFromIndex(position);
-            file.seek(indexPositionToRecordHeaderFp(position));
-            RecordHeader header = new RecordHeader(key, position);
-            header.read(file);
-            return header;
-        } catch (Exception ex) {
-            throw new RuntimeIOException(ex.toString(), ex);
-        }
-    }
-
-    /**
-     * Writes the ith record header to the index.
-     */
-    protected void writeRecordHeaderToIndex(RecordHeader header) throws IOException {
-        file.seek(indexPositionToRecordHeaderFp(header.indexPosition));
-        header.write(file);
     }
 
     /**
@@ -205,7 +170,6 @@ public abstract class BaseRecordsFile {
         file.write(data, 0, l);
         file.seek(indexPositionToRecordHeaderFp(currentNumRecords));
         newRecord.write(file);
-        newRecord.setIndexPosition(currentNumRecords);
         writeNumRecordsHeader(currentNumRecords + 1);
     }
 
@@ -214,15 +178,14 @@ public abstract class BaseRecordsFile {
      * Removes the record from the index. Replaces the target with the entry at the
      * end of the index.
      */
-    protected void deleteEntryFromIndex(String key, RecordHeader header, int currentNumRecords) throws IOException {
-        if (header.indexPosition != currentNumRecords - 1) {
-            String lastKey = readKeyFromIndex(currentNumRecords - 1);
-            RecordHeader last = keyToRecordHeader(lastKey);
-            last.setIndexPosition(header.indexPosition);
-            file.seek(indexPositionToKeyFp(last.indexPosition));
-            file.writeUTF(lastKey);
-            file.seek(indexPositionToRecordHeaderFp(last.indexPosition));
-            last.write(file);
+    protected void deleteEntryFromIndex(String key, int indexPosition, int currentNumRecords) throws IOException {
+        if (indexPosition != currentNumRecords - 1) {
+            RecordHeader lastHeader = new RecordHeader(currentNumRecords - 1);
+            lastHeader.readRecordHeader(file);
+
+            RecordHeader replaceHeader = lastHeader.relocate(indexPosition);
+            replaceHeader.writeKey(file);
+            lastHeader.writeRecordHeader(file);
         }
         writeNumRecordsHeader(currentNumRecords - 1);
     }
@@ -235,7 +198,7 @@ public abstract class BaseRecordsFile {
             throw new IOException("Key exists: " + key);
         }
         ensureIndexSpace(getNumRecords() + 1);
-        RecordHeader newRecord = allocateRecord(key, length);
+        RecordHeader newRecord = allocateRecord(file, key, getNumRecords(), length);
         writeRecordData(newRecord, data, offset, length);
         addEntryToIndex(key, newRecord, getNumRecords());
         ++numRecords;
@@ -246,13 +209,13 @@ public abstract class BaseRecordsFile {
      * then the update is handled by deleting the old record and adding the new.
      */
     public void updateRecord(String key, byte[] data, int offset, int length) throws IOException {
-        RecordHeader header = keyToRecordHeader(key);
-        if ((length - offset) > header.dataCapacity) {
+        RecordHeader header = findRecordHeader(key);
+        if ((length - offset) > header.getDataCapacity()) {
             deleteRecord(key);
             addRecord(key, data, offset, length);
         } else {
             writeRecordData(header, data, offset, length);
-            writeRecordHeaderToIndex(header);
+            header.writeRecordHeader(file);
         }
     }
 
@@ -260,15 +223,15 @@ public abstract class BaseRecordsFile {
      * Reads the data for the record with the given key.
      */
     public int readRecord(String key, byte[] data, int offset) throws IOException {
-        RecordHeader header = keyToRecordHeader(key);
-        return readRecordData(header, data, offset, header.dataCount);
+        RecordHeader header = findRecordHeader(key);
+        return readRecordData(header, data, offset, header.getDataCount());
     }
 
     /**
      * Reads the record data for the given record header.
      */
     protected int readRecordData(RecordHeader header, byte[] data, int offset, int length) throws IOException {
-        file.seek(header.dataPointer);
+        file.seek(header.getDataPointer());
         file.readFully(data, offset, length);
         return (length - offset);
     }
@@ -280,15 +243,15 @@ public abstract class BaseRecordsFile {
      * written to the file.
      */
     protected void writeRecordData(RecordHeader header, byte[] data, int offset, int length) throws IOException {
-        if (data.length > header.dataCapacity) {
+        if (data.length > header.getDataCapacity()) {
             throw new IOException("Record data does not fit");
         }
-        header.dataCount = data.length;
-        file.seek(header.dataPointer);
+        header.setDataCount(data.length);
+        file.seek(header.getDataPointer());
         file.write(data, offset, length);
     }
 
-    protected RecordHeader keyToRecordHeader(String key) throws IOException {
+    protected RecordHeader findRecordHeader(String key) throws IOException {
         Iterator<RecordHeader> e = recordHeaderIterator();
         while (e.hasNext()) {
             RecordHeader next = e.next();
@@ -304,30 +267,31 @@ public abstract class BaseRecordsFile {
      */
     public void deleteRecord(String key) {
         try {
-            RecordHeader delRecHead = keyToRecordHeader(key);
+            RecordHeader delRecHead = findRecordHeader(key);
             int currentNumRecords = getNumRecords();
-            if (getFileLength() == delRecHead.dataPointer + delRecHead.dataCapacity) {
+            if (getFileLength() == (delRecHead.getDataPointer() + delRecHead.getDataCapacity())) {
                 // shrink file since this is the last record in the file
-                setFileLength(delRecHead.dataPointer);
+                setFileLength(delRecHead.getDataPointer());
             } else {
-                RecordHeader previous = findRecordHeaderAt(delRecHead.dataPointer - 1);
+                RecordHeader previous = findRecordHeaderAtDataPointer(delRecHead.getDataPointer() - 1);
                 if (previous != null) {
                     // append space of deleted record onto previous record
-                    previous.dataCapacity += delRecHead.dataCapacity;
-                    writeRecordHeaderToIndex(previous);
+                    previous.increaseDataCapacity(delRecHead.getDataCapacity());
+                    previous.writeRecordHeader(file);
+
                 } else {
                     // target record is first in the file and is deleted by adding its space to
                     // the second record.
-                    RecordHeader secondRecord = findRecordHeaderAt(delRecHead.dataPointer + (long) delRecHead.dataCapacity);
-                    byte[] data = new byte[secondRecord.dataCount];
+                    RecordHeader secondRecord = findRecordHeaderAtDataPointer(delRecHead.getDataPointer() + (long) delRecHead.getDataCapacity());
+                    byte[] data = new byte[secondRecord.getDataCount()];
                     readRecordData(secondRecord, data, 0, data.length);
-                    secondRecord.dataPointer = delRecHead.dataPointer;
-                    secondRecord.dataCapacity += delRecHead.dataCapacity;
-                    writeRecordData(secondRecord, data, 0, data.length);
-                    writeRecordHeaderToIndex(secondRecord);
+                    RecordHeader replacedRecord = secondRecord.relocateDataPointer(delRecHead.getDataPointer());
+                    replacedRecord.increaseDataCapacity(delRecHead.getDataCapacity());
+                    writeRecordData(replacedRecord, data, 0, data.length);
+                    replacedRecord.writeRecordHeader(file);
                 }
             }
-            deleteEntryFromIndex(key, delRecHead, currentNumRecords);
+            deleteEntryFromIndex(key, delRecHead.getIndexPosition(), currentNumRecords);
             --numRecords;
         } catch (Exception ex) {
             throw new RuntimeIOException(ex.toString(), ex);
@@ -347,15 +311,17 @@ public abstract class BaseRecordsFile {
             return;
         }
         while (endIndexPtr > dataStartPtr) {
-            RecordHeader first = findRecordHeaderAt(dataStartPtr);
-            byte[] data = new byte[first.dataCount];
+            RecordHeader first = findRecordHeaderAtDataPointer(dataStartPtr);
+            byte[] data = new byte[first.getDataCount()];
             readRecordData(first, data, 0, data.length);
-            first.dataPointer = getFileLength();
-            first.dataCapacity = data.length;
-            setFileLength(first.dataPointer + data.length);
-            writeRecordData(first, data, 0, data.length);
-            writeRecordHeaderToIndex(first);
-            dataStartPtr += first.dataCapacity;
+
+            RecordHeader relocatedHeader = first.relocateDataPointer(getFileLength());
+            relocatedHeader.setDataCapacity(data.length);
+            setFileLength(relocatedHeader.getDataPointer() + data.length);
+            relocatedHeader.writeRecordHeader(file);
+            writeRecordData(relocatedHeader, data, 0, data.length);
+            dataStartPtr += relocatedHeader.getDataCapacity();
+
             writeDataStartPtrHeader(dataStartPtr);
         }
     }
@@ -390,13 +356,15 @@ public abstract class BaseRecordsFile {
 
         public RecordHeader next() {
             currRecordIndex = nextRecordIndex;
-            RecordHeader rh = readRecordHeaderFromIndex(currRecordIndex);
+            RecordHeader rh = new RecordHeader(currRecordIndex);
+            rh.readRecordHeader(file);
             ++nextRecordIndex;
             return rh;
         }
 
         public void remove() {
-            String key = readKeyFromIndex(currRecordIndex);
+            RecordHeader rh = new RecordHeader(currRecordIndex);
+            String key = rh.readKey(file);
             deleteRecord(key);
         }
     }

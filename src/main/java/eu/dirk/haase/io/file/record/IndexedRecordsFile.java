@@ -1,6 +1,7 @@
 package eu.dirk.haase.io.file.record;
 
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -58,7 +59,7 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      * Maps a key to a record header by looking it up in the in-memory index.
      */
     @Override
-    protected RecordHeader keyToRecordHeader(String key) throws IOException {
+    protected RecordHeader findRecordHeader(String key) throws IOException {
         RecordHeader h = (RecordHeader) memIndex.get(key);
         if (h == null) {
             throw new IOException("Key not found: " + key);
@@ -71,20 +72,20 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      * which uses the space. (O(n) memory accesses)
      */
     @Override
-    protected RecordHeader allocateRecord(String key, int dataLength) throws IOException {
+    protected RecordHeader allocateRecord(RandomAccessFile file, String key, int indexPosition, int dataLength) throws IOException {
         // search for empty space
         RecordHeader newRecord = null;
         Iterator<RecordHeader> e = memIndex.values().iterator();
         while (e.hasNext()) {
             RecordHeader next = e.next();
             if (dataLength <= next.getFreeSpace()) {
-                newRecord = next.split(key);
-                writeRecordHeaderToIndex(next);
+                newRecord = next.split(key, indexPosition);
+                next.writeRecordHeader(file);
                 break;
             }
         }
         if (newRecord == null) {
-            return super.allocateRecord(key, dataLength);
+            return super.allocateRecord(file, key, indexPosition, dataLength);
         }
         return newRecord;
     }
@@ -95,11 +96,11 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      * the location is not part of a record. (O(n) mem accesses)
      */
     @Override
-    protected RecordHeader findRecordHeaderAt(long targetFp) throws IOException {
+    protected RecordHeader findRecordHeaderAtDataPointer(long targetDataPointer) throws IOException {
         Iterator<RecordHeader> e = memIndex.values().iterator();
         while (e.hasNext()) {
             RecordHeader next = e.next();
-            if ((targetFp >= next.dataPointer) && (targetFp < (next.dataPointer + (long) next.dataCapacity))) {
+            if (next.isDataPointerWithinHeader(targetDataPointer)) {
                 return next;
             }
         }
@@ -134,8 +135,8 @@ public class IndexedRecordsFile extends BaseRecordsFile {
      * end of the index.
      */
     @Override
-    protected void deleteEntryFromIndex(String key, RecordHeader header, int currentNumRecords) throws IOException {
-        super.deleteEntryFromIndex(key, header, currentNumRecords);
+    protected void deleteEntryFromIndex(String key, int indexPosition, int currentNumRecords) throws IOException {
+        super.deleteEntryFromIndex(key, indexPosition, currentNumRecords);
         memIndex.remove(key);
     }
 
