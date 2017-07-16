@@ -199,7 +199,7 @@ public class RecordStorageTest {
         recordStorage.insertRecord(dataByteBuffer, null);
         recordStorage.insertRecord(dataByteBuffer, null);
         MainHeader mainHeader = recordStorage.getMainHeader();
-        RecordHeader secondRecordHeader = new RecordHeader().advanceRecordHeader();
+        RecordHeader secondRecordHeader = new RecordHeader().nextHeader();
         // ===============
         // === When
         RecordHeader recordHeader = recordStorage.findLastRecordHeader();

@@ -10,6 +10,7 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.util.Iterator;
 
 /**
  * Created by dhaa on 15.07.17.
@@ -60,33 +61,68 @@ public class RecordStorage {
         if (recordHeader == null) {
             recordHeader = new RecordHeader();
         } else {
-            recordHeader = recordHeader.advanceRecordHeader();
+            recordHeader = recordHeader.nextHeader();
         }
         int dataLength = (data != null ? data.limit() : 0);
         recordHeader.setRecordDataCapacity(dataLength);
         recordHeader.setRecordDataLength(dataLength);
-        this.mainHeader.applyRecord(recordHeader);
-        this.mainHeader.write(this.channel, this.buffer);
+        updateMainHeader(recordHeader);
         recordHeader.write(this.channel, this.buffer);
         return recordHeader.getRecordIndex();
     }
 
+    protected void updateMainHeader(RecordHeader recordHeader) throws IOException {
+        this.mainHeader.applyRecord(recordHeader);
+        this.mainHeader.write(this.channel, this.buffer);
+    }
+
     RecordHeader findLastRecordHeader() throws IOException {
-        long overallSize = this.channel.size();
-        RecordHeader lastRecordHeader = null;
-        RecordHeader currRecordHeader = new RecordHeader();
-        while (currRecordHeader.hasRoomForNext(overallSize)) {
-            currRecordHeader.read(this.channel, this.buffer);
-            if (currRecordHeader.isConstistent()) {
-                lastRecordHeader = currRecordHeader;
-            }
-            currRecordHeader = currRecordHeader.advanceRecordHeader();
+        RecordHeaderIterator iterator = new RecordHeaderIterator();
+        RecordHeader nextRecordHeader = null;
+        while (iterator.hasNext()) {
+            nextRecordHeader = iterator.next();
         }
-        return lastRecordHeader;
+        return nextRecordHeader;
     }
 
     public void close() throws IOException {
         this.mainHeader.write(this.channel, this.buffer);
         this.channel.close();
+    }
+
+    class RecordHeaderIterator implements Iterator<RecordHeader> {
+
+        final long overallSize;
+
+        RecordHeader nextRecordHeader = null;
+
+        RecordHeaderIterator() throws IOException {
+            overallSize = RecordStorage.this.channel.size();
+            nextRecordHeader = new RecordHeader();
+        }
+
+        @Override
+        public boolean hasNext() {
+            try {
+                if (nextRecordHeader.hasRoomForNext(overallSize)) {
+                    nextRecordHeader.read(RecordStorage.this.channel, RecordStorage.this.buffer);
+                    return nextRecordHeader.isConstistent();
+                }
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+            return false;
+        }
+
+        @Override
+        public RecordHeader next() {
+            RecordHeader currRecordHeader = nextRecordHeader;
+            nextRecordHeader = nextRecordHeader.nextHeader();
+            return currRecordHeader;
+        }
+
+        @Override
+        public void remove() {
+        }
     }
 }

@@ -113,8 +113,6 @@ final public class MainHeader extends AbstractHeader {
         super.read(buffer);
         prolog = new byte[PROLOG.length];
         buffer.get(prolog);
-        // Skip prolog - never read
-        // buffer.position(buffer.position() + PROLOG.length);
         version = buffer.getInt();
         recordCount = buffer.getInt();
         maxRecordDataLength = buffer.getInt();

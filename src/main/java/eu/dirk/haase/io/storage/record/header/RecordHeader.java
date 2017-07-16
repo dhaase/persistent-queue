@@ -76,7 +76,7 @@ final public class RecordHeader extends AbstractHeader {
     }
 
 
-    public RecordHeader advanceRecordHeader() {
+    public RecordHeader nextHeader() {
         RecordHeader nextRecordHeader = new RecordHeader();
 
         nextRecordHeader.setStartPointer(getEndPointer());

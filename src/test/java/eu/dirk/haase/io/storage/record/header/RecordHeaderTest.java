@@ -92,7 +92,7 @@ public class RecordHeaderTest {
         firstHeader.setRecordDataCapacity(200);
         // ============
         // When
-        RecordHeader nextHeader = firstHeader.advanceRecordHeader();
+        RecordHeader nextHeader = firstHeader.nextHeader();
         // ============
         // Then
         assertThat(nextHeader.getStartPointer()).isEqualTo(109L);
