@@ -46,7 +46,7 @@ public class MainHeaderTest {
         // ============
         // Given
         MainHeader givenHeader = new MainHeader();
-        ByteBuffer buffer = ByteBuffer.allocate(givenHeader.getHeaderLength());
+        ByteBuffer buffer = ByteBuffer.allocate(givenHeader.getLength());
         int dataBlockCount = 12;
         int minDataBlockLength = 23;
         int maxDataBlockLength = 45;

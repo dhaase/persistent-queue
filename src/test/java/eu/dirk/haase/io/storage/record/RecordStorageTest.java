@@ -1,5 +1,7 @@
 package eu.dirk.haase.io.storage.record;
 
+import eu.dirk.haase.io.storage.channel.SeekableInMemoryByteChannel;
+import eu.dirk.haase.io.storage.record.header.MainHeader;
 import eu.dirk.haase.io.storage.record.header.RecordHeader;
 import org.junit.After;
 import org.junit.Before;
@@ -9,6 +11,7 @@ import org.junit.runners.BlockJUnit4ClassRunner;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 
@@ -20,15 +23,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 @RunWith(BlockJUnit4ClassRunner.class)
 public class RecordStorageTest {
 
+    public static final int CAPACITY = 1024 * 10;
     private File file;
 
     private RecordStorage recordStorage;
 
+    private SeekableInMemoryByteChannel channel;
+
+    private ByteBuffer buffer;
+
     @Before
     public void setUp() throws IOException {
-        file = new File("RecordStorageTest.test.bin");
-        recordStorage = new RecordStorage(file, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.READ);
-        recordStorage.create();
+        byte[] content = new byte[CAPACITY];
+        buffer = ByteBuffer.wrap(content);
+        channel = new SeekableInMemoryByteChannel(content);
+        recordStorage = new RecordStorage(null, channel);
     }
 
     @After
@@ -45,38 +54,150 @@ public class RecordStorageTest {
 
     @Test
     public void testCreated() throws IOException {
+        // ===============
+        // === Given
+        byte[] prolog = new byte[MainHeader.PROLOG.length];
+        MainHeader mainHeader = new MainHeader();
+        int lastPosition = mainHeader.getLength();
+        buffer.limit(lastPosition);
+        // ===============
+        // === When
+        recordStorage.create();
+        // ===============
+        // === Then
+        assertThat(channel.position()).isEqualTo(lastPosition);
+        //          - Layout of the MainHeader
+        assertThat(buffer.getLong()).isEqualTo(0); // => startPointer
+        buffer.get(prolog);
+        assertThat(prolog).isEqualTo(MainHeader.PROLOG);  // => PROLOG
+        assertThat(buffer.getInt()).isEqualTo(1);  // => version
+        assertThat(buffer.getInt()).isEqualTo(0);  // => recordCount
+        assertThat(buffer.getInt()).isEqualTo(0);  // => maxRecordDataLength
+        assertThat(buffer.getInt()).isEqualTo(0);  // => minRecordDataLength
+    }
+
+    @Test
+    public void testAddOneRecord() throws IOException {
+        // ===============
+        // === Given
+        int dataLength = 123;
+        ByteBuffer dataByteBuffer = ByteBuffer.allocate(dataLength);
+        MainHeader mainHeader = new MainHeader();
+        RecordHeader recordHeader = new RecordHeader();
+        int lastPosition = mainHeader.getLength() + recordHeader.getLength();
+        recordStorage.create();
+        // ===============
+        // === When
+        int recordIndex = recordStorage.addRecord(dataByteBuffer, null);
+        // ===============
+        // === Then
+        assertThat(channel.position()).isEqualTo(lastPosition);
+        //          - skip the MainHeader
+        buffer.position(mainHeader.getLength());
+        //       => RecordHeader ------------------
+        assertThat(recordIndex).isEqualTo(0);
+        //          - Layout of the first RecordHeader
+        assertThat(buffer.getLong()).isEqualTo(mainHeader.getLength()); // => startPointer
+        assertThat(buffer.getLong()).isEqualTo(recordHeader.getEndPointer()); // => startDataPointer
+        assertThat(buffer.getInt()).isEqualTo(dataLength);  // => recordDataCapacity
+        assertThat(buffer.getInt()).isEqualTo(dataLength);  // => recordDataLength
+        assertThat(buffer.getInt()).isEqualTo(0);  // => recordIndex
+        assertThat(buffer.getLong()).isLessThanOrEqualTo(System.currentTimeMillis()); // => lastModifiedTimeMillis
+    }
+
+    @Test
+    public void testAddTwoRecord() throws IOException {
+        // ===============
+        // === Given
+        int dataLength = 123;
+        ByteBuffer dataByteBuffer = ByteBuffer.allocate(dataLength);
+        MainHeader mainHeader = new MainHeader();
+        RecordHeader recordHeader = new RecordHeader();
+        int secondPosition = mainHeader.getLength() + recordHeader.getLength();
+        int lastPosition = secondPosition + recordHeader.getLength();
+        recordStorage.create();
+        // ===============
+        // === When
+        int recordIndex1 = recordStorage.addRecord(dataByteBuffer, null);
+        int recordIndex2 = recordStorage.addRecord(dataByteBuffer, null);
+        // ===============
+        // === Then
+        assertThat(channel.position()).isEqualTo(lastPosition);
+        //          - skip the MainHeader
+        buffer.position(mainHeader.getLength());
+        //          - skip the first RecordHeader
+        buffer.position(secondPosition);
+        //       => RecordHeader ------------------
+        assertThat(recordIndex1).isEqualTo(0);
+        assertThat(recordIndex2).isEqualTo(1);
+        //          - Layout of the second RecordHeader
+        assertThat(buffer.getLong()).isEqualTo(secondPosition); // => startPointer
+        assertThat(buffer.getLong()).isEqualTo(lastPosition); // => startDataPointer
+        assertThat(buffer.getInt()).isEqualTo(dataLength);  // => recordDataCapacity
+        assertThat(buffer.getInt()).isEqualTo(dataLength);  // => recordDataLength
+        assertThat(buffer.getInt()).isEqualTo(1);  // => recordIndex
+        assertThat(buffer.getLong()).isLessThanOrEqualTo(System.currentTimeMillis()); // => lastModifiedTimeMillis
+    }
+
+    @Test
+    public void testFindLastRecord_WithNoRecord() throws IOException {
         // Given
+        recordStorage.create();
         // When
         RecordHeader recordHeader = recordStorage.findLastRecordHeader();
         // Then
         assertThat(recordHeader).isNull();
     }
 
-    @Test
-    public void testAddedOne() throws IOException {
-        // Given
-        // When
-        int recordIndex = recordStorage.addRecord(null, null);
-        RecordHeader recordHeader = recordStorage.findLastRecordHeader();
-        // Then
-        assertThat(recordHeader).isNotNull();
-        assertThat(recordIndex).isEqualTo(1);
-        assertThat(recordIndex).isEqualTo(recordHeader.getRecordIndex() - 1);
-    }
 
     @Test
-    public void testAddedTwo() throws IOException {
-        // Given
-        // When
-        int recordIndex1 = recordStorage.addRecord(null, null);
-        int recordIndex2 = recordStorage.addRecord(null, null);
+    public void testFindLastRecord_WithOneRecord() throws IOException {
+        // ===============
+        // === Given
+        int dataLength = 123;
+        ByteBuffer dataByteBuffer = ByteBuffer.allocate(dataLength);
+        recordStorage.create();
+        recordStorage.addRecord(dataByteBuffer, null);
+        MainHeader mainHeader = recordStorage.getMainHeader();
+        RecordHeader firstRecordHeader = new RecordHeader();
+        // ===============
+        // === When
         RecordHeader recordHeader = recordStorage.findLastRecordHeader();
-        // Then
+        // ===============
+        // === Then
         assertThat(recordHeader).isNotNull();
-        assertThat(recordIndex1).isEqualTo(1);
-        assertThat(recordIndex2).isEqualTo(2);
-        assertThat(recordIndex2).isEqualTo(recordHeader.getRecordIndex() - 1);
+        assertThat(recordHeader.getStartPointer()).isEqualTo(mainHeader.getLength());
+        assertThat(recordHeader.getStartDataPointer()).isEqualTo(firstRecordHeader.getEndPointer());
+        assertThat(recordHeader.getRecordDataCapacity()).isEqualTo(dataLength);
+        assertThat(recordHeader.getRecordDataLength()).isEqualTo(dataLength);
+        assertThat(recordHeader.getRecordIndex()).isEqualTo(0);
+        assertThat(recordHeader.getLastModifiedTimeMillis()).isLessThanOrEqualTo(firstRecordHeader.getLastModifiedTimeMillis());
     }
 
+
+    @Test
+    public void testFindLastRecord_WithTwoRecord() throws IOException {
+        // ===============
+        // === Given
+        int dataLength = 123;
+        ByteBuffer dataByteBuffer = ByteBuffer.allocate(dataLength);
+        recordStorage.create();
+        recordStorage.addRecord(dataByteBuffer, null);
+        recordStorage.addRecord(dataByteBuffer, null);
+        MainHeader mainHeader = recordStorage.getMainHeader();
+        RecordHeader secondRecordHeader = new RecordHeader().advanceRecordHeader();
+        // ===============
+        // === When
+        RecordHeader recordHeader = recordStorage.findLastRecordHeader();
+        // ===============
+        // === Then
+        assertThat(recordHeader).isNotNull();
+        assertThat(recordHeader.getStartPointer()).isEqualTo(secondRecordHeader.getStartPointer());
+        assertThat(recordHeader.getStartDataPointer()).isEqualTo(secondRecordHeader.getEndPointer());
+        assertThat(recordHeader.getRecordDataCapacity()).isEqualTo(dataLength);
+        assertThat(recordHeader.getRecordDataLength()).isEqualTo(dataLength);
+        assertThat(recordHeader.getRecordIndex()).isEqualTo(secondRecordHeader.getRecordIndex());
+        assertThat(recordHeader.getLastModifiedTimeMillis()).isLessThanOrEqualTo(secondRecordHeader.getLastModifiedTimeMillis());
+    }
 
 }

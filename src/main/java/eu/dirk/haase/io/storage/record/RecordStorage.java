@@ -1,6 +1,5 @@
 package eu.dirk.haase.io.storage.record;
 
-import eu.dirk.haase.io.storage.record.data.RecordData;
 import eu.dirk.haase.io.storage.record.header.MainHeader;
 import eu.dirk.haase.io.storage.record.header.RecordHeader;
 
@@ -30,8 +29,12 @@ public class RecordStorage {
     }
 
     public RecordStorage(Path path, OpenOption... options) throws IOException {
+        this(path, Files.newByteChannel(path, options));
+    }
+
+    public RecordStorage(Path path, SeekableByteChannel channel) throws IOException {
         this.path = path;
-        this.channel = Files.newByteChannel(path, options);
+        this.channel = channel;
         this.mainHeader = new MainHeader();
         this.buffer = ByteBuffer.allocate(1024 * 10);
     }
@@ -56,22 +59,27 @@ public class RecordStorage {
         RecordHeader recordHeader = findLastRecordHeader();
         if (recordHeader == null) {
             recordHeader = new RecordHeader();
+        } else {
+            recordHeader = recordHeader.advanceRecordHeader();
         }
-        recordHeader = recordHeader.advanceRecordHeader();
+        recordHeader.setRecordDataCapacity(data.limit());
+        recordHeader.setRecordDataLength(data.limit());
         recordHeader.write(this.channel, this.buffer);
         return recordHeader.getRecordIndex();
     }
 
     RecordHeader findLastRecordHeader() throws IOException {
         long overallSize = this.channel.size();
-        RecordHeader recordHeader = new RecordHeader();
-        if(recordHeader.hasRoomForNext(overallSize)) {
-            while (recordHeader.hasRoomForNext(overallSize)) {
-                recordHeader = recordHeader.advanceRecordHeader();
+        RecordHeader lastRecordHeader = null;
+        RecordHeader currRecordHeader = new RecordHeader();
+        while (currRecordHeader.hasRoomForNext(overallSize)) {
+            currRecordHeader.read(this.channel, this.buffer);
+            if (currRecordHeader.isConstistent()) {
+                lastRecordHeader = currRecordHeader;
             }
-            return recordHeader;
+            currRecordHeader = currRecordHeader.advanceRecordHeader();
         }
-        return null;
+        return lastRecordHeader;
     }
 
     public void close() throws IOException {

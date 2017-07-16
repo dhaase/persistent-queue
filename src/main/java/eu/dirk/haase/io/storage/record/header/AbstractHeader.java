@@ -31,14 +31,16 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
      */
     private long startPointer;
 
-    private final boolean isGrowingAsNeeded = true;
-
     protected AbstractHeader(int subHeaderLength) {
         this.headerLength = HEADER_LENGTH + subHeaderLength;
     }
 
-    public int getHeaderLength() {
+    public int getLength() {
         return headerLength;
+    }
+
+    public long getEndPointer() {
+        return getLength() + getStartPointer();
     }
 
     @Override
@@ -59,37 +61,6 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
     protected void read(ByteBuffer buffer) {
         startPointer = buffer.getLong();
     }
-
-    /**
-     * Writes the Header as a sequence of bytes to this channel using the given buffer.
-     *
-     * @param channel
-     * @param source
-     * @throws IOException
-     */
-    public void write(SeekableByteChannel channel, ByteBuffer source) throws IOException {
-        initializeForIO();
-        super.write(channel, source);
-    }
-
-    private void initializeForIO() {
-        setCurrentPosition(startPointer);
-        setMinRequiredEndPosition(startPointer + headerLength);
-        setExpectedSize(headerLength);
-    }
-
-    /**
-     * Initialize this Header from a sequence of bytes from this channel using the given buffer.
-     *
-     * @param channel
-     * @param target
-     * @throws IOException
-     */
-    public void read(SeekableByteChannel channel, ByteBuffer target) throws IOException {
-        initializeForIO();
-        super.read(channel, target);
-    }
-
 
     @Override
     protected void checkConsistency() throws IOException {

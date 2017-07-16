@@ -60,23 +60,25 @@ final public class RecordHeader extends AbstractHeader {
      */
     public RecordHeader() {
         super(SUB_HEADER_LENGTH);
+        initFirstHeader();
+    }
+
+
+    private void initFirstHeader() {
         lastModifiedTimeMillis = System.currentTimeMillis();
-        setStartPointer(MAIN_HEADER.getHeaderLength() + MAIN_HEADER.getStartPointer());
-        setStartDataPointer(getHeaderLength() + getStartPointer());
+        setStartPointer(MAIN_HEADER.getEndPointer());
+        setStartDataPointer(getEndPointer());
         setRecordDataCapacity(0);
         setRecordDataLength(0);
         setRecordIndex(0);
     }
 
-    public int incrementRecordIndex() {
-        return ++recordIndex;
-    }
 
     public RecordHeader advanceRecordHeader() {
         RecordHeader nextRecordHeader = new RecordHeader();
 
         nextRecordHeader.setStartPointer(getEndPointer());
-        nextRecordHeader.setStartDataPointer(getHeaderLength() + getStartPointer());
+        nextRecordHeader.setStartDataPointer(getEndPointer() + getLength());
         nextRecordHeader.setRecordDataCapacity(0);
         nextRecordHeader.setRecordDataLength(0);
         nextRecordHeader.setRecordIndex(getRecordIndex() + 1);
@@ -86,9 +88,7 @@ final public class RecordHeader extends AbstractHeader {
 
 
     public boolean hasRoomForNext(long overallSize) {
-        long nextStartPointer = getEndPointer();
-        long nextStartDataPointer = getHeaderLength() + nextStartPointer;
-        return (nextStartDataPointer < overallSize);
+        return (getEndPointer() < overallSize);
     }
 
 
@@ -100,10 +100,6 @@ final public class RecordHeader extends AbstractHeader {
         this.recordIndex = recordIndex;
     }
 
-    public boolean isEmpty() {
-        return recordDataLength == 0;
-    }
-
     public long getLastModifiedTimeMillis() {
         return lastModifiedTimeMillis;
     }
@@ -111,7 +107,7 @@ final public class RecordHeader extends AbstractHeader {
     @Override
     protected void checkConsistency() throws IOException {
         super.checkConsistency();
-        long storageHeaderEnd = (MAIN_HEADER.getStartPointer() + MAIN_HEADER.getHeaderLength());
+        long storageHeaderEnd = (MAIN_HEADER.getStartPointer() + MAIN_HEADER.getLength());
         if (startDataPointer < storageHeaderEnd) {
             throw new IOException("startDataPointer can not be"
                     + " within the MainHeader"
@@ -190,10 +186,6 @@ final public class RecordHeader extends AbstractHeader {
     @Override
     public void setStartPointer(long startPointer) {
         super.setStartPointer(startPointer);
-    }
-
-    public long getEndPointer() {
-        return getStartDataPointer() + getRecordDataCapacity();
     }
 
 }

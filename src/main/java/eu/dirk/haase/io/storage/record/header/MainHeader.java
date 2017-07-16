@@ -11,7 +11,7 @@ final public class MainHeader extends AbstractHeader {
     /**
      * Prolog is a text which describes the origin or purpose of the storages unit (= the file).
      */
-    private final static byte[] PROLOG = MainHeader.class.getCanonicalName().getBytes();
+    public final static byte[] PROLOG = MainHeader.class.getCanonicalName().getBytes();
 
     private final static int VERSION = 1;
 
@@ -22,15 +22,19 @@ final public class MainHeader extends AbstractHeader {
 
         // Sub-Layout of the AbstractHeader
         // (first Layout-Part see AbstractHeader.HEADER_LENGTH)
+        headerLength += PROLOG.length; // size of byte[] for PROLOG
         headerLength += 4; // size of int for version
         headerLength += 4; // size of int for recordCount
         headerLength += 4; // size of int for maxRecordDataLength
         headerLength += 4; // size of int for minRecordDataLength
-        headerLength += PROLOG.length; // size of byte[] for PROLOG
 
         SUB_HEADER_LENGTH = headerLength;
     }
 
+    /**
+     * Structure Version of the storage unit.
+     */
+    private byte[] prolog;
     /**
      * Structure Version of the storage unit.
      */
@@ -91,35 +95,28 @@ final public class MainHeader extends AbstractHeader {
     @Override
     public void write(ByteBuffer buffer) {
         super.write(buffer);
+        buffer.put(PROLOG);
         buffer.putInt(version);
         buffer.putInt(recordCount);
         buffer.putInt(maxRecordDataLength);
         buffer.putInt(minRecordDataLength);
-        buffer.put(PROLOG);
     }
 
     @Override
     public void read(ByteBuffer buffer) {
         super.read(buffer);
+        prolog = new byte[PROLOG.length];
+        buffer.get(prolog);
+        // Skip prolog - never read
+        //buffer.position(buffer.position() + PROLOG.length);
         version = buffer.getInt();
         recordCount = buffer.getInt();
         maxRecordDataLength = buffer.getInt();
         minRecordDataLength = buffer.getInt();
-        // Skip prolog - never read
-        buffer.position(buffer.position() + PROLOG.length);
     }
 
     public int getRecordCount() {
         return recordCount;
-    }
-
-    public void calcRecordLengthMinMax(int recordDataLength) {
-        maxRecordDataLength = Math.max(recordDataLength, maxRecordDataLength);
-        minRecordDataLength = Math.min(recordDataLength, minRecordDataLength);
-    }
-
-    public int incrementRecordCount() {
-        return ++recordCount;
     }
 
     public void setRecordCount(int recordCount) {
