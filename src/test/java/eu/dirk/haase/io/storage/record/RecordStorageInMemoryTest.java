@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Created by dhaa on 15.07.17.
  */
 @RunWith(BlockJUnit4ClassRunner.class)
-public class RecordStorageInMemoryTest extends RecordStorageTest {
+public class RecordStorageInMemoryTest extends RecordStorageFileTest {
 
     public static final int CAPACITY = 1024 * 10;
 
@@ -54,6 +54,7 @@ public class RecordStorageInMemoryTest extends RecordStorageTest {
         // === Then
         assertThat(channel.position()).isEqualTo(lastPosition);
         //          - Layout of the MainHeader
+        assertThat(buffer.getLong()).isEqualTo(21780678656418930L); // => magic data
         assertThat(buffer.getLong()).isEqualTo(0); // => startPointer
         buffer.get(prolog);
         assertThat(prolog).isEqualTo(MainHeader.PROLOG);  // => PROLOG
@@ -81,6 +82,7 @@ public class RecordStorageInMemoryTest extends RecordStorageTest {
         // === Then
         assertThat(channel.position()).isEqualTo(lastPosition);
         //          - Layout of the MainHeader
+        assertThat(buffer.getLong()).isEqualTo(21780678656418930L); // => magic data
         assertThat(buffer.getLong()).isEqualTo(0); // => startPointer
         buffer.get(prolog);
         assertThat(prolog).isEqualTo(MainHeader.PROLOG);  // => PROLOG
@@ -91,6 +93,7 @@ public class RecordStorageInMemoryTest extends RecordStorageTest {
         //       => RecordHeader ------------------
         assertThat(recordIndex).isEqualTo(0);
         //          - Layout of the first RecordHeader
+        assertThat(buffer.getLong()).isEqualTo(90595410863218L); // => magic data
         assertThat(buffer.getLong()).isEqualTo(mainHeader.getLength()); // => startPointer
         assertThat(buffer.getLong()).isEqualTo(recordHeader.getEndPointer()); // => startDataPointer
         assertThat(buffer.getInt()).isEqualTo(dataLength);  // => recordDataCapacity
@@ -123,6 +126,7 @@ public class RecordStorageInMemoryTest extends RecordStorageTest {
         // === Then
         assertThat(channel.position()).isEqualTo(lastPosition);
         //          - Layout of the MainHeader
+        assertThat(buffer.getLong()).isEqualTo(21780678656418930L); // => magic data
         assertThat(buffer.getLong()).isEqualTo(0); // => startPointer
         buffer.get(prolog);
         assertThat(prolog).isEqualTo(MainHeader.PROLOG);  // => PROLOG
@@ -136,6 +140,7 @@ public class RecordStorageInMemoryTest extends RecordStorageTest {
         assertThat(recordIndex1).isEqualTo(0);
         assertThat(recordIndex2).isEqualTo(1);
         //          - Layout of the second RecordHeader
+        assertThat(buffer.getLong()).isEqualTo(90595410863218L); // => magic data
         assertThat(buffer.getLong()).isEqualTo(secondPosition); // => startPointer
         assertThat(buffer.getLong()).isEqualTo(lastPosition); // => startDataPointer
         assertThat(buffer.getInt()).isEqualTo(dataLength2);  // => recordDataCapacity

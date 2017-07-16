@@ -9,10 +9,10 @@ import java.nio.channels.SeekableByteChannel;
  */
 public abstract class ChannelAwareUnit {
 
-    private boolean isConstistent;
+    private boolean isValid;
 
     public boolean isValid() {
-        return isConstistent;
+        return isValid;
     }
 
     /**
@@ -33,8 +33,8 @@ public abstract class ChannelAwareUnit {
         // Write the content of the buffer to the channel.
         source.flip();
         int bytesWritten = channel.write(source);
-        isConstistent = (bytesWritten == getLength());
-        if (!isConstistent) {
+        isValid = (bytesWritten == getLength());
+        if (!isValid) {
             throw new IOException("Insufficient number of bytes written:" +
                     " Count of bytes currently written "
                     + bytesWritten
@@ -61,8 +61,8 @@ public abstract class ChannelAwareUnit {
         target.limit(getLength());
         // Read the content of the entity, to which this channel is connected, into the buffer.
         int bytesRead = channel.read(target);
-        isConstistent = (bytesRead == getLength());
-        if (!isConstistent) {
+        isValid = (bytesRead == getLength());
+        if (!isValid) {
             throw new IOException("Insufficient number of bytes read:" +
                     " Count of bytes currently read "
                     + bytesRead
@@ -72,7 +72,7 @@ public abstract class ChannelAwareUnit {
         // Initialize this Header.
         target.flip();
         read(target);
-        isConstistent = (prevStartPointer == getStartPointer());
+        isValid = (prevStartPointer == getStartPointer());
         return bytesRead;
     }
 

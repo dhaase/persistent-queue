@@ -67,6 +67,12 @@ public class RecordStorage {
         return null;
     }
 
+    public int deleteRecord(byte[] key) throws IOException {
+        RecordHeader recordHeader = selectRecordHeader(key);
+        //recordHeader
+        return recordHeader.getRecordIndex();
+    }
+
     public int insertRecord(byte[] key, ByteBuffer data) throws IOException {
         RecordHeader recordHeader = findLastRecordHeader();
         if (recordHeader == null) {

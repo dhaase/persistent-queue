@@ -3,6 +3,7 @@ package eu.dirk.haase.io.storage.record.header;
 import eu.dirk.haase.io.storage.channel.ChannelAwareUnit;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +19,7 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
         int headerLength = 0;
 
         // Layout of the AbstractHeader
+        headerLength += 8; // size of the magic data
         headerLength += 8; // size of long for startPointer
 
         HEADER_LENGTH = headerLength;
@@ -31,9 +33,20 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
      * Start pointer to the first byte of the header within the storage unit.
      */
     private long startPointer;
+    /**
+     * Magic Data of the Header.
+     */
+    private long magicData;
+
 
     protected AbstractHeader(int subHeaderLength) {
         this.headerLength = HEADER_LENGTH + subHeaderLength;
+    }
+
+    static long buildMagicData(String magicStr) {
+        // The input array is assumed to be in big-endian byte-order:
+        // the most significant byte is in the zeroth element.
+        return new BigInteger(magicStr.getBytes()).longValue();
     }
 
     public int getLength() {
@@ -54,12 +67,19 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
     }
 
     @Override
+    public boolean isValid() {
+        return super.isValid() && (magicData == getMagicData());
+    }
+
+    @Override
     protected void write(ByteBuffer buffer) {
+        buffer.putLong(getMagicData());
         buffer.putLong(startPointer);
     }
 
     @Override
     protected void read(ByteBuffer buffer) {
+        magicData = buffer.getLong();
         startPointer = buffer.getLong();
     }
 
@@ -70,6 +90,8 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
             throw new IOException(errorReasonList.toString());
         }
     }
+
+    protected abstract long getMagicData();
 
     public List<String> enlistConsistencyErrors() throws IOException {
         List<String> errorReasonList = null;

@@ -19,6 +19,8 @@ final public class MainHeader extends AbstractHeader {
 
     private final static int SUB_HEADER_LENGTH;
 
+    private final static long MAGIC_DATA = AbstractHeader.buildMagicData("MainHdr");
+
     static {
         int headerLength = 0;
 
@@ -59,6 +61,11 @@ final public class MainHeader extends AbstractHeader {
         super(SUB_HEADER_LENGTH);
         this.prolog = new byte[PROLOG.length];
         setStartPointer(0);
+    }
+
+    @Override
+    public long getMagicData() {
+        return MAGIC_DATA;
     }
 
     public int getVersion() {

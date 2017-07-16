@@ -52,10 +52,10 @@ public class RecordHeaderTest {
         // When
         // ============
         // Then
-        assertThat(firstHeader.getStartPointer()).isEqualTo(73L);
-        assertThat(firstHeader.getStartDataPointer()).isEqualTo(145L);
-        assertThat(firstHeader.getEndPointer()).isEqualTo(145L);
-        assertThat(firstHeader.getLength()).isEqualTo(72);
+        assertThat(firstHeader.getStartPointer()).isEqualTo(81L);
+        assertThat(firstHeader.getStartDataPointer()).isEqualTo(165L);
+        assertThat(firstHeader.getEndPointer()).isEqualTo(165L);
+        assertThat(firstHeader.getLength()).isEqualTo(84);
         assertThat(firstHeader.getRecordDataCapacity()).isEqualTo(0);
         assertThat(firstHeader.getRecordDataLength()).isEqualTo(0);
         assertThat(firstHeader.getRecordIndex()).isEqualTo(0);
@@ -73,10 +73,10 @@ public class RecordHeaderTest {
         firstHeader.setRecordDataCapacity(200);
         // ============
         // Then
-        assertThat(firstHeader.getStartPointer()).isEqualTo(73L);
-        assertThat(firstHeader.getStartDataPointer()).isEqualTo(145L);
-        assertThat(firstHeader.getEndPointer()).isEqualTo(145L);
-        assertThat(firstHeader.getLength()).isEqualTo(72);
+        assertThat(firstHeader.getStartPointer()).isEqualTo(81L);
+        assertThat(firstHeader.getStartDataPointer()).isEqualTo(165L);
+        assertThat(firstHeader.getEndPointer()).isEqualTo(165L);
+        assertThat(firstHeader.getLength()).isEqualTo(84);
         assertThat(firstHeader.getRecordDataCapacity()).isEqualTo(200);
         assertThat(firstHeader.getRecordDataLength()).isEqualTo(123);
         assertThat(firstHeader.getRecordIndex()).isEqualTo(0);
@@ -84,7 +84,7 @@ public class RecordHeaderTest {
 
 
     @Test
-    public void testAdvanceRecordHeader() {
+    public void testNextRecordHeader() {
         // ============
         // Given
         RecordHeader firstHeader = new RecordHeader();
@@ -95,10 +95,10 @@ public class RecordHeaderTest {
         RecordHeader nextHeader = firstHeader.nextHeader();
         // ============
         // Then
-        assertThat(nextHeader.getStartPointer()).isEqualTo(145L);
-        assertThat(nextHeader.getStartDataPointer()).isEqualTo(217L);
-        assertThat(nextHeader.getEndPointer()).isEqualTo(217L);
-        assertThat(nextHeader.getLength()).isEqualTo(72);
+        assertThat(nextHeader.getStartPointer()).isEqualTo(165L);
+        assertThat(nextHeader.getStartDataPointer()).isEqualTo(249L);
+        assertThat(nextHeader.getEndPointer()).isEqualTo(249L);
+        assertThat(nextHeader.getLength()).isEqualTo(84);
         assertThat(nextHeader.getRecordDataCapacity()).isEqualTo(0);
         assertThat(nextHeader.getRecordDataLength()).isEqualTo(0);
         assertThat(nextHeader.getRecordIndex()).isEqualTo(1);
@@ -147,7 +147,7 @@ public class RecordHeaderTest {
         int byteBufferCapacity = 5000;
         int dataBlockCapacity = 12;
         int occupiedBytes = 45;
-        int startDataPointer = 80;
+        int startDataPointer = 85;
         int startPointer = 1230;
         givenHeader.setRecordDataCapacity(dataBlockCapacity);
         givenHeader.setRecordDataLength(occupiedBytes);
@@ -191,7 +191,7 @@ public class RecordHeaderTest {
         int byteBufferCapacity = 5000;
         int dataBlockCapacity = 12;
         int occupiedBytes = 45;
-        int startDataPointer = 80;
+        int startDataPointer = 85;
         int startPointer = 1230;
         givenHeader.setRecordDataCapacity(dataBlockCapacity);
         givenHeader.setRecordDataLength(occupiedBytes);

@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Created by dhaa on 15.07.17.
  */
 @RunWith(BlockJUnit4ClassRunner.class)
-public class RecordStorageTest {
+public class RecordStorageFileTest {
 
     protected RecordStorage recordStorage;
     protected SeekableByteChannel channel;
@@ -35,7 +35,7 @@ public class RecordStorageTest {
     }
 
     protected SeekableByteChannel createChannel() throws IOException {
-        file = new File("./RecordStorageTest.recordfile.bin");
+        file = new File("./RecordStorageFileTest.recordfile.bin");
         return Files.newByteChannel(file.toPath(), StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.READ);
     }
 

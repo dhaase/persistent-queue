@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,6 +23,9 @@ final public class RecordHeader extends AbstractHeader {
 
     private final static MainHeader MAIN_HEADER = new MainHeader();
 
+    private final static long MAGIC_DATA = AbstractHeader.buildMagicData("RecHdr");
+
+
     static {
         int headerLength = 0;
 
@@ -31,6 +35,7 @@ final public class RecordHeader extends AbstractHeader {
         headerLength += 4; // size of int for recordDataCapacity
         headerLength += 4; // size of int for recordDataLength
         headerLength += 4; // size of int for recordIndex
+        headerLength += 4; // size of int for flags
         headerLength += 8; // size of int for lastModifiedTimeMillis
         headerLength += KEY_LENGTH; // size of the key
 
@@ -63,6 +68,10 @@ final public class RecordHeader extends AbstractHeader {
      * Index position of the Record.
      */
     private int recordIndex;
+    /**
+     * Flags of the Record.
+     */
+    private int flags;
 
     /**
      * Creates a fresh RecordHeader.
@@ -80,11 +89,19 @@ final public class RecordHeader extends AbstractHeader {
     public void copyKey(byte[] keyData) {
         if ((keyData != null) && (keyData.length == key.length)) {
             System.arraycopy(keyData, 0, key, 0, key.length);
+        } else {
+            Arrays.fill(key, (byte) 0);
         }
+    }
+
+    @Override
+    public long getMagicData() {
+        return MAGIC_DATA;
     }
 
     private void initFirstHeader() {
         lastModifiedTimeMillis = System.currentTimeMillis();
+        flags = 0;
         setStartPointer(MAIN_HEADER.getEndPointer());
         setStartDataPointer(getEndPointer());
         setRecordDataCapacity(0);
@@ -95,6 +112,9 @@ final public class RecordHeader extends AbstractHeader {
 
     public RecordHeader nextHeader() {
         RecordHeader nextRecordHeader = new RecordHeader();
+
+        nextRecordHeader.lastModifiedTimeMillis = System.currentTimeMillis();
+        nextRecordHeader.flags = 0;
 
         nextRecordHeader.setStartPointer(getEndPointer());
         nextRecordHeader.setStartDataPointer(getEndPointer() + getLength());
@@ -170,6 +190,7 @@ final public class RecordHeader extends AbstractHeader {
         buffer.putInt(recordDataCapacity);
         buffer.putInt(recordDataLength);
         buffer.putInt(recordIndex);
+        buffer.putInt(flags);
         buffer.putLong(System.currentTimeMillis());
         buffer.put(key);
     }
@@ -181,6 +202,7 @@ final public class RecordHeader extends AbstractHeader {
         recordDataCapacity = buffer.getInt();
         recordDataLength = buffer.getInt();
         recordIndex = buffer.getInt();
+        flags = buffer.getInt();
         lastModifiedTimeMillis = buffer.getLong();
         buffer.get(key);
     }
