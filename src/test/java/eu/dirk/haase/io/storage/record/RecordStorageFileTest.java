@@ -434,17 +434,17 @@ public class RecordStorageFileTest {
         byte[] buffer2b = new byte[CAPACITY];
         byte[] data1 = "Das ist der erste Record".getBytes();
         byte[] data2 = "Das ist der zweite Record".getBytes();
-        ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(buffer1a.length);
-        ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(buffer2a.length);
+        ByteBuffer dataByteBuffer1a = ByteBuffer.allocate(buffer1a.length);
+        ByteBuffer dataByteBuffer2a = ByteBuffer.allocate(buffer2a.length);
         ByteBuffer dataByteBuffer1b = ByteBuffer.wrap(buffer1b);
         ByteBuffer dataByteBuffer2b = ByteBuffer.wrap(buffer2b);
-        dataByteBuffer1.put(data1);
-        dataByteBuffer2.put(data2);
+        dataByteBuffer1a.put(data1);
+        dataByteBuffer2a.put(data2);
 
         recordStorage.create();
 
-        recordStorage.insertRecord(key1, dataByteBuffer1);
-        recordStorage.insertRecord(key2, dataByteBuffer2);
+        recordStorage.insertRecord(key1, dataByteBuffer1a);
+        recordStorage.insertRecord(key2, dataByteBuffer2a);
         recordStorage.close();
         recordStorage = null;
         // ===============
