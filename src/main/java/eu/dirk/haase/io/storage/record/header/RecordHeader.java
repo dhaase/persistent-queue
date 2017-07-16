@@ -3,6 +3,8 @@ package eu.dirk.haase.io.storage.record.header;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by dhaa on 15.07.17.
@@ -105,11 +107,12 @@ final public class RecordHeader extends AbstractHeader {
     }
 
     @Override
-    protected void checkConsistency() throws IOException {
-        super.checkConsistency();
+    public List<String> enlistConsistencyErrors() throws IOException {
+        List<String> errorReasonList = super.enlistConsistencyErrors();
         long storageHeaderEnd = (MAIN_HEADER.getStartPointer() + MAIN_HEADER.getLength());
         if (startDataPointer < storageHeaderEnd) {
-            throw new IOException("startDataPointer can not be"
+            errorReasonList = (errorReasonList != null ? errorReasonList : new ArrayList<String>());
+            errorReasonList.add("startDataPointer can not be"
                     + " within the MainHeader"
                     + ": RecordHeader.startDataPointer is currently at "
                     + startDataPointer
@@ -117,25 +120,29 @@ final public class RecordHeader extends AbstractHeader {
                     + storageHeaderEnd);
         }
         if (recordDataCapacity < 0) {
-            throw new IOException("recordDataCapacity can not be below 0:" +
+            errorReasonList = (errorReasonList != null ? errorReasonList : new ArrayList<String>());
+            errorReasonList.add("recordDataCapacity can not be below 0:" +
                     " recordDataCapacity is currently "
                     + recordDataCapacity);
 
         }
         if (recordDataLength < 0) {
-            throw new IOException("recordDataLength can not be below 0:" +
+            errorReasonList = (errorReasonList != null ? errorReasonList : new ArrayList<String>());
+            errorReasonList.add("recordDataLength can not be below 0:" +
                     " recordDataLength is currently "
                     + recordDataLength);
 
         }
         if (lastModifiedTimeMillis < MIN_TIMESTAMP) {
-            throw new IOException("lastModifiedTimeMillis must be later than" +
-                    " '" + TIMESTAMP_STR +"':" +
+            errorReasonList = (errorReasonList != null ? errorReasonList : new ArrayList<String>());
+            errorReasonList.add("lastModifiedTimeMillis must be later than" +
+                    " '" + TIMESTAMP_STR + "':" +
                     " lastModifiedTimeMillis is currently "
                     + lastModifiedTimeMillis
                     + "; Calculates to the Timestamp: "
                     + new Timestamp(lastModifiedTimeMillis));
         }
+        return errorReasonList;
     }
 
 

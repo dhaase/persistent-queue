@@ -4,7 +4,8 @@ import eu.dirk.haase.io.storage.channel.ChannelAwareUnit;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SeekableByteChannel;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by dhaa on 15.07.17.
@@ -64,10 +65,20 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
 
     @Override
     protected void checkConsistency() throws IOException {
+        List<String> errorReasonList = enlistConsistencyErrors();
+        if ((errorReasonList != null) && !errorReasonList.isEmpty()) {
+            throw new IOException(errorReasonList.toString());
+        }
+    }
+
+    public List<String> enlistConsistencyErrors() throws IOException {
+        List<String> errorReasonList = null;
         if (startPointer < 0) {
-            throw new IOException("startPointer can not be below 0: startPointer is currently "
+            errorReasonList = (errorReasonList != null ? errorReasonList : new ArrayList<String>());
+            errorReasonList.add("startPointer can not be below 0: startPointer is currently "
                     + startPointer);
 
         }
+        return errorReasonList;
     }
 }

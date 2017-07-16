@@ -2,6 +2,8 @@ package eu.dirk.haase.io.storage.record.header;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by dhaa on 15.07.17.
@@ -46,11 +48,11 @@ final public class MainHeader extends AbstractHeader {
     /**
      * Maximum length of the blocks in the storage unit.
      */
-    private int maxRecordDataLength;
+    private int maxRecordDataLength = Integer.MIN_VALUE;
     /**
      * Minimum length of the blocks in the storage unit.
      */
-    private int minRecordDataLength;
+    private int minRecordDataLength = Integer.MAX_VALUE;
 
 
     public MainHeader() {
@@ -67,29 +69,33 @@ final public class MainHeader extends AbstractHeader {
     }
 
     @Override
-    protected void checkConsistency() throws IOException {
-        super.checkConsistency();
-        if (maxRecordDataLength < minRecordDataLength) {
-            throw new IOException("maxRecordDataLength can not be less than minRecordDataLength:" +
+    public List<String> enlistConsistencyErrors() throws IOException {
+        List<String> errorReasonList = super.enlistConsistencyErrors();
+        if ((recordCount != 0) && (maxRecordDataLength < minRecordDataLength)) {
+            errorReasonList = (errorReasonList != null ? errorReasonList : new ArrayList<String>());
+            errorReasonList.add("maxRecordDataLength can not be less than minRecordDataLength:" +
                     " maxRecordDataLength is currently "
                     + maxRecordDataLength
                     + " and minRecordDataLength is "
                     + minRecordDataLength);
         }
         if (recordCount < 0) {
-            throw new IOException("recordCount can not be below 0:" +
+            errorReasonList = (errorReasonList != null ? errorReasonList : new ArrayList<String>());
+            errorReasonList.add("recordCount can not be below 0:" +
                     " recordCount is currently "
                     + recordCount);
 
         }
         if (!isCompabible()) {
-            throw new IOException("Version is incompatible:" +
+            errorReasonList = (errorReasonList != null ? errorReasonList : new ArrayList<String>());
+            errorReasonList.add("Version is incompatible:" +
                     " Version is currently "
                     + version
                     + " and expected Version is "
                     + VERSION);
 
         }
+        return errorReasonList;
     }
 
     @Override
@@ -108,11 +114,17 @@ final public class MainHeader extends AbstractHeader {
         prolog = new byte[PROLOG.length];
         buffer.get(prolog);
         // Skip prolog - never read
-        //buffer.position(buffer.position() + PROLOG.length);
+        // buffer.position(buffer.position() + PROLOG.length);
         version = buffer.getInt();
         recordCount = buffer.getInt();
         maxRecordDataLength = buffer.getInt();
         minRecordDataLength = buffer.getInt();
+    }
+
+    public void applyRecord(RecordHeader header) {
+        this.recordCount = Math.max(header.getRecordIndex() + 1, this.recordCount);
+        this.maxRecordDataLength = Math.max(header.getRecordDataLength(), this.maxRecordDataLength);
+        this.minRecordDataLength = Math.min(header.getRecordDataLength(), this.minRecordDataLength);
     }
 
     public int getRecordCount() {
@@ -138,4 +150,5 @@ final public class MainHeader extends AbstractHeader {
     public void setMinRecordDataLength(int minRecordDataLength) {
         this.minRecordDataLength = minRecordDataLength;
     }
+
 }

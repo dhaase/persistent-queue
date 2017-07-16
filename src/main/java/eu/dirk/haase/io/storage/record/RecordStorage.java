@@ -55,15 +55,18 @@ public class RecordStorage {
         this.mainHeader.read(this.channel, this.buffer);
     }
 
-    public int addRecord(ByteBuffer data, byte[] key) throws IOException {
+    public int insertRecord(ByteBuffer data, byte[] key) throws IOException {
         RecordHeader recordHeader = findLastRecordHeader();
         if (recordHeader == null) {
             recordHeader = new RecordHeader();
         } else {
             recordHeader = recordHeader.advanceRecordHeader();
         }
-        recordHeader.setRecordDataCapacity(data.limit());
-        recordHeader.setRecordDataLength(data.limit());
+        int dataLength = (data != null ? data.limit() : 0);
+        recordHeader.setRecordDataCapacity(dataLength);
+        recordHeader.setRecordDataLength(dataLength);
+        this.mainHeader.applyRecord(recordHeader);
+        this.mainHeader.write(this.channel, this.buffer);
         recordHeader.write(this.channel, this.buffer);
         return recordHeader.getRecordIndex();
     }
@@ -83,6 +86,7 @@ public class RecordStorage {
     }
 
     public void close() throws IOException {
-        channel.close();
+        this.mainHeader.write(this.channel, this.buffer);
+        this.channel.close();
     }
 }

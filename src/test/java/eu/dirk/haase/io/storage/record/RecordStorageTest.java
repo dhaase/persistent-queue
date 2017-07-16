@@ -12,8 +12,6 @@ import org.junit.runners.BlockJUnit4ClassRunner;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.file.OpenOption;
-import java.nio.file.StandardOpenOption;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -72,14 +70,15 @@ public class RecordStorageTest {
         assertThat(prolog).isEqualTo(MainHeader.PROLOG);  // => PROLOG
         assertThat(buffer.getInt()).isEqualTo(1);  // => version
         assertThat(buffer.getInt()).isEqualTo(0);  // => recordCount
-        assertThat(buffer.getInt()).isEqualTo(0);  // => maxRecordDataLength
-        assertThat(buffer.getInt()).isEqualTo(0);  // => minRecordDataLength
+        assertThat(buffer.getInt()).isEqualTo(Integer.MIN_VALUE);  // => maxRecordDataLength
+        assertThat(buffer.getInt()).isEqualTo(Integer.MAX_VALUE);  // => minRecordDataLength
     }
 
     @Test
     public void testAddOneRecord() throws IOException {
         // ===============
         // === Given
+        byte[] prolog = new byte[MainHeader.PROLOG.length];
         int dataLength = 123;
         ByteBuffer dataByteBuffer = ByteBuffer.allocate(dataLength);
         MainHeader mainHeader = new MainHeader();
@@ -88,12 +87,18 @@ public class RecordStorageTest {
         recordStorage.create();
         // ===============
         // === When
-        int recordIndex = recordStorage.addRecord(dataByteBuffer, null);
+        int recordIndex = recordStorage.insertRecord(dataByteBuffer, null);
         // ===============
         // === Then
         assertThat(channel.position()).isEqualTo(lastPosition);
-        //          - skip the MainHeader
-        buffer.position(mainHeader.getLength());
+        //          - Layout of the MainHeader
+        assertThat(buffer.getLong()).isEqualTo(0); // => startPointer
+        buffer.get(prolog);
+        assertThat(prolog).isEqualTo(MainHeader.PROLOG);  // => PROLOG
+        assertThat(buffer.getInt()).isEqualTo(1);  // => version
+        assertThat(buffer.getInt()).isEqualTo(1);  // => recordCount
+        assertThat(buffer.getInt()).isEqualTo(123);  // => maxRecordDataLength
+        assertThat(buffer.getInt()).isEqualTo(123);  // => minRecordDataLength
         //       => RecordHeader ------------------
         assertThat(recordIndex).isEqualTo(0);
         //          - Layout of the first RecordHeader
@@ -109,8 +114,11 @@ public class RecordStorageTest {
     public void testAddTwoRecord() throws IOException {
         // ===============
         // === Given
-        int dataLength = 123;
-        ByteBuffer dataByteBuffer = ByteBuffer.allocate(dataLength);
+        byte[] prolog = new byte[MainHeader.PROLOG.length];
+        int dataLength1 = 123;
+        int dataLength2 = 23;
+        ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
+        ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(dataLength2);
         MainHeader mainHeader = new MainHeader();
         RecordHeader recordHeader = new RecordHeader();
         int secondPosition = mainHeader.getLength() + recordHeader.getLength();
@@ -118,13 +126,19 @@ public class RecordStorageTest {
         recordStorage.create();
         // ===============
         // === When
-        int recordIndex1 = recordStorage.addRecord(dataByteBuffer, null);
-        int recordIndex2 = recordStorage.addRecord(dataByteBuffer, null);
+        int recordIndex1 = recordStorage.insertRecord(dataByteBuffer1, null);
+        int recordIndex2 = recordStorage.insertRecord(dataByteBuffer2, null);
         // ===============
         // === Then
         assertThat(channel.position()).isEqualTo(lastPosition);
-        //          - skip the MainHeader
-        buffer.position(mainHeader.getLength());
+        //          - Layout of the MainHeader
+        assertThat(buffer.getLong()).isEqualTo(0); // => startPointer
+        buffer.get(prolog);
+        assertThat(prolog).isEqualTo(MainHeader.PROLOG);  // => PROLOG
+        assertThat(buffer.getInt()).isEqualTo(1);  // => version
+        assertThat(buffer.getInt()).isEqualTo(2);  // => recordCount
+        assertThat(buffer.getInt()).isEqualTo(dataLength1);  // => maxRecordDataLength
+        assertThat(buffer.getInt()).isEqualTo(dataLength2);  // => minRecordDataLength
         //          - skip the first RecordHeader
         buffer.position(secondPosition);
         //       => RecordHeader ------------------
@@ -133,8 +147,8 @@ public class RecordStorageTest {
         //          - Layout of the second RecordHeader
         assertThat(buffer.getLong()).isEqualTo(secondPosition); // => startPointer
         assertThat(buffer.getLong()).isEqualTo(lastPosition); // => startDataPointer
-        assertThat(buffer.getInt()).isEqualTo(dataLength);  // => recordDataCapacity
-        assertThat(buffer.getInt()).isEqualTo(dataLength);  // => recordDataLength
+        assertThat(buffer.getInt()).isEqualTo(dataLength2);  // => recordDataCapacity
+        assertThat(buffer.getInt()).isEqualTo(dataLength2);  // => recordDataLength
         assertThat(buffer.getInt()).isEqualTo(1);  // => recordIndex
         assertThat(buffer.getLong()).isLessThanOrEqualTo(System.currentTimeMillis()); // => lastModifiedTimeMillis
     }
@@ -157,7 +171,7 @@ public class RecordStorageTest {
         int dataLength = 123;
         ByteBuffer dataByteBuffer = ByteBuffer.allocate(dataLength);
         recordStorage.create();
-        recordStorage.addRecord(dataByteBuffer, null);
+        recordStorage.insertRecord(dataByteBuffer, null);
         MainHeader mainHeader = recordStorage.getMainHeader();
         RecordHeader firstRecordHeader = new RecordHeader();
         // ===============
@@ -182,8 +196,8 @@ public class RecordStorageTest {
         int dataLength = 123;
         ByteBuffer dataByteBuffer = ByteBuffer.allocate(dataLength);
         recordStorage.create();
-        recordStorage.addRecord(dataByteBuffer, null);
-        recordStorage.addRecord(dataByteBuffer, null);
+        recordStorage.insertRecord(dataByteBuffer, null);
+        recordStorage.insertRecord(dataByteBuffer, null);
         MainHeader mainHeader = recordStorage.getMainHeader();
         RecordHeader secondRecordHeader = new RecordHeader().advanceRecordHeader();
         // ===============
