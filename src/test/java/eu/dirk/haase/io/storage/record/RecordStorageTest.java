@@ -67,8 +67,8 @@ public class RecordStorageTest {
         int secondPosition = mainHeader.getLength() + recordHeader.getLength();
         int lastPosition = secondPosition + recordHeader.getLength();
         recordStorage.create();
-        recordStorage.insertRecord(dataByteBuffer1, key1);
-        recordStorage.insertRecord(dataByteBuffer2, key2);
+        recordStorage.insertRecord(key1, dataByteBuffer1);
+        recordStorage.insertRecord(key2, dataByteBuffer2);
         // ===============
         // === When
         RecordHeader recordHeader2 = recordStorage.selectRecordHeader(key2);
@@ -102,8 +102,8 @@ public class RecordStorageTest {
         RecordHeader recordHeader = new RecordHeader();
         int secondPosition = mainHeader.getLength() + recordHeader.getLength();
         recordStorage.create();
-        recordStorage.insertRecord(dataByteBuffer1, key1);
-        recordStorage.insertRecord(dataByteBuffer2, key2);
+        recordStorage.insertRecord(key1, dataByteBuffer1);
+        recordStorage.insertRecord(key2, dataByteBuffer2);
         // ===============
         // === When
         RecordHeader recordHeader1 = recordStorage.selectRecordHeader(key1);
@@ -140,7 +140,7 @@ public class RecordStorageTest {
         int dataLength = 123;
         ByteBuffer dataByteBuffer = ByteBuffer.allocate(dataLength);
         recordStorage.create();
-        recordStorage.insertRecord(dataByteBuffer, null);
+        recordStorage.insertRecord(null, dataByteBuffer);
         MainHeader mainHeader = recordStorage.getMainHeader();
         RecordHeader firstRecordHeader = new RecordHeader();
         // ===============
@@ -165,8 +165,8 @@ public class RecordStorageTest {
         int dataLength = 123;
         ByteBuffer dataByteBuffer = ByteBuffer.allocate(dataLength);
         recordStorage.create();
-        recordStorage.insertRecord(dataByteBuffer, null);
-        recordStorage.insertRecord(dataByteBuffer, null);
+        recordStorage.insertRecord(null, dataByteBuffer);
+        recordStorage.insertRecord(null, dataByteBuffer);
         RecordHeader secondRecordHeader = new RecordHeader().nextHeader();
         // ===============
         // === When

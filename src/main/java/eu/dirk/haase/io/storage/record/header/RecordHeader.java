@@ -77,6 +77,12 @@ final public class RecordHeader extends AbstractHeader {
         return key;
     }
 
+    public void copyKey(byte[] keyData) {
+        if ((keyData != null) && (keyData.length == key.length)) {
+            System.arraycopy(keyData, 0, key, 0, key.length);
+        }
+    }
+
     private void initFirstHeader() {
         lastModifiedTimeMillis = System.currentTimeMillis();
         setStartPointer(MAIN_HEADER.getEndPointer());
@@ -185,6 +191,11 @@ final public class RecordHeader extends AbstractHeader {
 
     public void setStartDataPointer(long startDataPointer) {
         this.startDataPointer = startDataPointer;
+    }
+
+    public void initRecordDataLength(ByteBuffer data) {
+        int dataLength = (data != null ? data.limit() : 0);
+        recordDataCapacity = recordDataLength = dataLength;
     }
 
     public int getRecordDataCapacity() {

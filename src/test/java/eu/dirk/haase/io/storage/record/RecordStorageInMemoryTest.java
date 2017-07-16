@@ -76,7 +76,7 @@ public class RecordStorageInMemoryTest extends RecordStorageTest {
         recordStorage.create();
         // ===============
         // === When
-        int recordIndex = recordStorage.insertRecord(dataByteBuffer, null);
+        int recordIndex = recordStorage.insertRecord(null, dataByteBuffer);
         // ===============
         // === Then
         assertThat(channel.position()).isEqualTo(lastPosition);
@@ -117,8 +117,8 @@ public class RecordStorageInMemoryTest extends RecordStorageTest {
         recordStorage.create();
         // ===============
         // === When
-        int recordIndex1 = recordStorage.insertRecord(dataByteBuffer1, key1);
-        int recordIndex2 = recordStorage.insertRecord(dataByteBuffer2, key2);
+        int recordIndex1 = recordStorage.insertRecord(key1, dataByteBuffer1);
+        int recordIndex2 = recordStorage.insertRecord(key2, dataByteBuffer2);
         // ===============
         // === Then
         assertThat(channel.position()).isEqualTo(lastPosition);

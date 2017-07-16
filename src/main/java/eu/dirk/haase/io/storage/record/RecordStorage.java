@@ -67,19 +67,15 @@ public class RecordStorage {
         return null;
     }
 
-    public int insertRecord(ByteBuffer data, byte[] key) throws IOException {
+    public int insertRecord(byte[] key, ByteBuffer data) throws IOException {
         RecordHeader recordHeader = findLastRecordHeader();
         if (recordHeader == null) {
             recordHeader = new RecordHeader();
         } else {
             recordHeader = recordHeader.nextHeader();
         }
-        int dataLength = (data != null ? data.limit() : 0);
-        if (key != null) {
-            System.arraycopy(key, 0, recordHeader.getKey(), 0, recordHeader.getKey().length);
-        }
-        recordHeader.setRecordDataCapacity(dataLength);
-        recordHeader.setRecordDataLength(dataLength);
+        recordHeader.copyKey(key);
+        recordHeader.initRecordDataLength(data);
         updateMainHeader(recordHeader);
         recordHeader.write(this.channel, this.buffer);
         return recordHeader.getRecordIndex();
