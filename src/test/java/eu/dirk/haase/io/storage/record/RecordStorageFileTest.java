@@ -37,6 +37,7 @@ public class RecordStorageFileTest {
 
     protected SeekableByteChannel createChannel() throws IOException {
         file = new File("./RecordStorageFileTest.recordfile.bin");
+        file.delete();
         return Files.newByteChannel(file.toPath(), StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.READ);
     }
 
@@ -53,7 +54,7 @@ public class RecordStorageFileTest {
     }
 
     @Test
-    public void testSelectLastRecord() throws IOException {
+    public void testSelectLastRecordHeader() throws IOException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -101,7 +102,7 @@ public class RecordStorageFileTest {
     }
 
     @Test
-    public void testSelectFirstRecord() throws IOException {
+    public void testSelectFirstRecordHeader() throws IOException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -145,7 +146,7 @@ public class RecordStorageFileTest {
 
 
     @Test
-    public void testFindLastRecord_WithNoRecord() throws IOException {
+    public void testFindLastRecordHeader_WithNoRecord() throws IOException {
         // Given
         recordStorage.create();
         // When
@@ -156,7 +157,7 @@ public class RecordStorageFileTest {
 
 
     @Test
-    public void testFindLastRecord_WithOneRecord() throws IOException {
+    public void testFindLastRecordHeader_WithOneRecord() throws IOException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -189,7 +190,7 @@ public class RecordStorageFileTest {
 
 
     @Test
-    public void testFindLastRecord_WithTwoRecords() throws IOException {
+    public void testFindLastRecordHeader_WithTwoRecords() throws IOException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -237,7 +238,7 @@ public class RecordStorageFileTest {
 
 
     @Test
-    public void testFindLastRecord_WithOneRecord_ButDeleted() throws IOException {
+    public void testFindLastRecordHeader_WithOneRecord_ButDeleted() throws IOException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -259,7 +260,7 @@ public class RecordStorageFileTest {
 
 
     @Test
-    public void testFindLastRecord_WithTwoRecords_ButAllDeleted() throws IOException {
+    public void testFindLastRecordHeader_WithTwoRecords_ButAllDeleted() throws IOException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -289,7 +290,7 @@ public class RecordStorageFileTest {
 
 
     @Test
-    public void testFindLastRecord_WithTwoRecords_ButLastDeleted() throws IOException {
+    public void testFindLastRecordHeader_WithTwoRecords_ButLastDeleted() throws IOException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -337,7 +338,7 @@ public class RecordStorageFileTest {
 
 
     @Test
-    public void testFindLastRecord_WithTwoRecords_ButFirstDeleted() throws IOException {
+    public void testFindLastRecordHeader_WithTwoRecords_ButFirstDeleted() throws IOException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -381,6 +382,43 @@ public class RecordStorageFileTest {
         assertThat(recordHeader.getRecordDataLength()).isEqualTo(dataLength2);  // => recordDataLength
         assertThat(recordHeader.getRecordIndex()).isEqualTo(1);  // => recordIndex
         assertThat(recordHeader.getLastModifiedTimeMillis()).isLessThanOrEqualTo(System.currentTimeMillis()); // => lastModifiedTimeMillis
+    }
+
+
+    @Test
+    public void testSelectRecord_WithTwoRecords() throws IOException {
+        // ===============
+        // === Given
+        byte[] key1 = UUID.randomUUID().toString().getBytes();
+        byte[] key2 = UUID.randomUUID().toString().getBytes();
+        int CAPACITY = 1024;
+        byte[] buffer1a = new byte[CAPACITY];
+        byte[] buffer2a = new byte[CAPACITY];
+        byte[] buffer1b = new byte[CAPACITY];
+        byte[] buffer2b = new byte[CAPACITY];
+        byte[] data1 = "Das ist der erste Record".getBytes();
+        byte[] data2 = "Das ist der zweite Record".getBytes();
+        ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(buffer1a.length);
+        ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(buffer2a.length);
+        ByteBuffer dataByteBuffer1b = ByteBuffer.wrap(buffer1b);
+        ByteBuffer dataByteBuffer2b = ByteBuffer.wrap(buffer2b);
+        dataByteBuffer1.put(data1);
+        dataByteBuffer2.put(data2);
+
+        recordStorage.create();
+
+        recordStorage.insertRecord(key1, dataByteBuffer1);
+        recordStorage.insertRecord(key2, dataByteBuffer2);
+        // ===============
+        // === When
+        int recordIndex1 = recordStorage.selectRecord(key1, dataByteBuffer1b);
+        int recordIndex2 = recordStorage.selectRecord(key2, dataByteBuffer2b);
+        // ===============
+        // === Then
+        assertThat(recordIndex1).isEqualTo(0);
+        assertThat(recordIndex2).isEqualTo(1);
+        assertThat(buffer1b).startsWith(data1);
+        assertThat(buffer2b).startsWith(data2);
     }
 
 }

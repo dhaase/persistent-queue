@@ -57,10 +57,21 @@ public class RecordStorage {
         this.mainHeader.read(this.channel, this.buffer);
     }
 
-    public int updateRecord(byte[] key, ByteBuffer data) throws IOException {
+    public int selectRecord(byte[] key, ByteBuffer dataBuffer) throws IOException {
+        RecordHeader recordHeader = selectRecordHeader(key);
+        if ((recordHeader != null) && !recordHeader.isDeleted()) {
+            recordData.initFromRecordHeader(recordHeader);
+            recordData.read(this.channel, dataBuffer);
+            recordData.readData(this.channel, dataBuffer);
+            return recordHeader.getRecordIndex();
+        }
+        return -1;
+    }
+
+    public int updateRecord(byte[] key, ByteBuffer dataBuffer) throws IOException {
         RecordHeader recordHeader = deleteRecordHeader(key);
         if (recordHeader != null) {
-            return insertRecord(key, data);
+            return insertRecord(key, dataBuffer);
         }
         return -1;
     }

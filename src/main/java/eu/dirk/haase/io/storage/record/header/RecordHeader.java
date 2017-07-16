@@ -222,7 +222,7 @@ final public class RecordHeader extends AbstractHeader {
     }
 
     public void initRecordDataLength(ByteBuffer data) {
-        int dataLength = (data != null ? data.limit() : 0);
+        int dataLength = (data != null ? data.position() : 0);
         recordDataCapacity = recordDataLength = dataLength;
     }
 
