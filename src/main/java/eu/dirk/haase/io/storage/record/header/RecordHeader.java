@@ -101,7 +101,7 @@ final public class RecordHeader extends AbstractHeader {
 
 
     public boolean hasRoomForNext(long overallSize) {
-        return (getEndPointer() < overallSize);
+        return (getStartPointer() < overallSize);
     }
 
 
