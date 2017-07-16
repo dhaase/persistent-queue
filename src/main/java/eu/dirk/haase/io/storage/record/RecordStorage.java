@@ -12,7 +12,10 @@ import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 /**
  * Created by dhaa on 15.07.17.
@@ -26,7 +29,11 @@ public class RecordStorage {
     private final ByteBuffer buffer;
 
     private final Path path;
+
     private final RecordData recordData;
+    private final Set<OpenOption> mutableOpenOptionSet = new HashSet<OpenOption>();
+    private final Set<OpenOption> openOptionSet = Collections.unmodifiableSet(mutableOpenOptionSet);
+
     private RecordHeader lastRecordHeader;
 
     public RecordStorage(File file, OpenOption... options) throws IOException {
@@ -35,6 +42,7 @@ public class RecordStorage {
 
     public RecordStorage(Path path, OpenOption... options) throws IOException {
         this(path, Files.newByteChannel(path, options));
+        fillOpenOptionSet(options);
     }
 
     public RecordStorage(Path path, SeekableByteChannel channel) throws IOException {
@@ -43,6 +51,16 @@ public class RecordStorage {
         this.recordData = new RecordData();
         this.mainHeader = new MainHeader();
         this.buffer = ByteBuffer.allocate(1024 * 10);
+    }
+
+    private void fillOpenOptionSet(OpenOption[] options) {
+        for (OpenOption oo : options) {
+            this.mutableOpenOptionSet.add(oo);
+        }
+    }
+
+    public Set<OpenOption> openOptions() {
+        return openOptionSet;
     }
 
     public Path getPath() {
@@ -108,7 +126,6 @@ public class RecordStorage {
     }
 
     public void close() throws IOException {
-        this.mainHeader.write(this.channel, this.buffer);
         this.channel.close();
     }
 

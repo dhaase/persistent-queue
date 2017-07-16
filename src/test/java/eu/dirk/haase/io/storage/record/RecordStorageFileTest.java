@@ -421,4 +421,47 @@ public class RecordStorageFileTest {
         assertThat(buffer2b).startsWith(data2);
     }
 
+    @Test
+    public void testInitializeRecordStorage() throws IOException {
+        // ===============
+        // === Given
+        byte[] key1 = UUID.randomUUID().toString().getBytes();
+        byte[] key2 = UUID.randomUUID().toString().getBytes();
+        int CAPACITY = 1024;
+        byte[] buffer1a = new byte[CAPACITY];
+        byte[] buffer2a = new byte[CAPACITY];
+        byte[] buffer1b = new byte[CAPACITY];
+        byte[] buffer2b = new byte[CAPACITY];
+        byte[] data1 = "Das ist der erste Record".getBytes();
+        byte[] data2 = "Das ist der zweite Record".getBytes();
+        ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(buffer1a.length);
+        ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(buffer2a.length);
+        ByteBuffer dataByteBuffer1b = ByteBuffer.wrap(buffer1b);
+        ByteBuffer dataByteBuffer2b = ByteBuffer.wrap(buffer2b);
+        dataByteBuffer1.put(data1);
+        dataByteBuffer2.put(data2);
+
+        recordStorage.create();
+
+        recordStorage.insertRecord(key1, dataByteBuffer1);
+        recordStorage.insertRecord(key2, dataByteBuffer2);
+        recordStorage.close();
+        recordStorage = null;
+        // ===============
+        // === When
+        RecordStorage reinitRecordStorage = new RecordStorage(file, StandardOpenOption.READ);
+        reinitRecordStorage.initialize();
+        int recordIndex1 = reinitRecordStorage.selectRecord(key1, dataByteBuffer1b);
+        int recordIndex2 = reinitRecordStorage.selectRecord(key2, dataByteBuffer2b);
+        reinitRecordStorage.close();
+        // ===============
+        // === Then
+        assertThat(reinitRecordStorage.openOptions().contains(StandardOpenOption.READ)).isTrue();
+        assertThat(reinitRecordStorage.openOptions().contains(StandardOpenOption.CREATE)).isFalse();
+        assertThat(recordIndex1).isEqualTo(0);
+        assertThat(recordIndex2).isEqualTo(1);
+        assertThat(buffer1b).startsWith(data1);
+        assertThat(buffer2b).startsWith(data2);
+    }
+
 }
