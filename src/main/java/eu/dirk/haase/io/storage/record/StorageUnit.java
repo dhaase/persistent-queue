@@ -1,15 +1,26 @@
-package eu.dirk.haase.io.storage.channel;
+package eu.dirk.haase.io.storage.record;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 
 /**
  * Created by dhaa on 15.07.17.
  */
-public abstract class ChannelAwareUnit {
+public abstract class StorageUnit {
 
     private boolean isValid;
+    /**
+     * Start pointer to the first byte of the header within the storage unit.
+     */
+    private long startPointer;
+
+    public static long buildMagicData(String magicStr) {
+        // The input array is assumed to be in big-endian byte-order:
+        // the most significant byte is in the zeroth element.
+        return new BigInteger(magicStr.getBytes()).longValue();
+    }
 
     public boolean isValid() {
         return isValid;
@@ -80,11 +91,17 @@ public abstract class ChannelAwareUnit {
         return bytesRead;
     }
 
+    public long getStartPointer() {
+        return startPointer;
+    }
+
+    public void setStartPointer(long startPointer) {
+        this.startPointer = startPointer;
+    }
+
     abstract protected void checkConsistency() throws IOException;
 
     abstract public int getLength();
-
-    abstract public long getStartPointer();
 
     abstract protected void write(ByteBuffer buffer);
 

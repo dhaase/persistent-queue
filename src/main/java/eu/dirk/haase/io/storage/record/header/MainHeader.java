@@ -1,5 +1,7 @@
 package eu.dirk.haase.io.storage.record.header;
 
+import eu.dirk.haase.io.storage.record.StorageUnit;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -19,7 +21,7 @@ final public class MainHeader extends AbstractHeader {
 
     private final static int SUB_HEADER_LENGTH;
 
-    private final static long MAGIC_DATA = AbstractHeader.buildMagicData("MainHdr");
+    private final static long MAGIC_DATA = StorageUnit.buildMagicData("MainHdr");
 
     static {
         int headerLength = 0;
@@ -126,7 +128,7 @@ final public class MainHeader extends AbstractHeader {
         minRecordDataLength = buffer.getInt();
     }
 
-    public void applyRecord(RecordHeader header) {
+    public void initFromRecordHeader(RecordHeader header) {
         this.recordCount = Math.max(header.getRecordIndex() + 1, this.recordCount);
         this.maxRecordDataLength = Math.max(header.getRecordDataLength(), this.maxRecordDataLength);
         this.minRecordDataLength = Math.min(header.getRecordDataLength(), this.minRecordDataLength);

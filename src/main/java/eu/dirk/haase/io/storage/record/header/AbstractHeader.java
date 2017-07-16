@@ -1,9 +1,8 @@
 package eu.dirk.haase.io.storage.record.header;
 
-import eu.dirk.haase.io.storage.channel.ChannelAwareUnit;
+import eu.dirk.haase.io.storage.record.StorageUnit;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +10,7 @@ import java.util.List;
 /**
  * Created by dhaa on 15.07.17.
  */
-public abstract class AbstractHeader extends ChannelAwareUnit {
+public abstract class AbstractHeader extends StorageUnit {
 
     private final static int HEADER_LENGTH;
 
@@ -30,10 +29,6 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
      */
     private final int headerLength;
     /**
-     * Start pointer to the first byte of the header within the storage unit.
-     */
-    private long startPointer;
-    /**
      * Magic Data of the Header.
      */
     private long magicData;
@@ -41,12 +36,6 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
 
     protected AbstractHeader(int subHeaderLength) {
         this.headerLength = HEADER_LENGTH + subHeaderLength;
-    }
-
-    static long buildMagicData(String magicStr) {
-        // The input array is assumed to be in big-endian byte-order:
-        // the most significant byte is in the zeroth element.
-        return new BigInteger(magicStr.getBytes()).longValue();
     }
 
     public int getLength() {
@@ -58,15 +47,6 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
     }
 
     @Override
-    public long getStartPointer() {
-        return startPointer;
-    }
-
-    protected void setStartPointer(long startPointer) {
-        this.startPointer = startPointer;
-    }
-
-    @Override
     public boolean isValid() {
         return super.isValid() && (magicData == getMagicData());
     }
@@ -74,13 +54,13 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
     @Override
     protected void write(ByteBuffer buffer) {
         buffer.putLong(getMagicData());
-        buffer.putLong(startPointer);
+        buffer.putLong(getStartPointer());
     }
 
     @Override
     protected void read(ByteBuffer buffer) {
         magicData = buffer.getLong();
-        startPointer = buffer.getLong();
+        setStartPointer(buffer.getLong());
     }
 
     @Override
@@ -95,10 +75,10 @@ public abstract class AbstractHeader extends ChannelAwareUnit {
 
     public List<String> enlistConsistencyErrors() throws IOException {
         List<String> errorReasonList = null;
-        if (startPointer < 0) {
+        if (getStartPointer() < 0) {
             errorReasonList = (errorReasonList != null ? errorReasonList : new ArrayList<String>());
             errorReasonList.add("startPointer can not be below 0: startPointer is currently "
-                    + startPointer);
+                    + getStartPointer());
 
         }
         return errorReasonList;

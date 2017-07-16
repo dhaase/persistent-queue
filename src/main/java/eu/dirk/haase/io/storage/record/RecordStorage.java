@@ -1,5 +1,6 @@
 package eu.dirk.haase.io.storage.record;
 
+import eu.dirk.haase.io.storage.record.data.RecordData;
 import eu.dirk.haase.io.storage.record.header.MainHeader;
 import eu.dirk.haase.io.storage.record.header.RecordHeader;
 
@@ -25,7 +26,7 @@ public class RecordStorage {
     private final ByteBuffer buffer;
 
     private final Path path;
-
+    private final RecordData recordData;
     private RecordHeader lastRecordHeader;
 
     public RecordStorage(File file, OpenOption... options) throws IOException {
@@ -39,12 +40,9 @@ public class RecordStorage {
     public RecordStorage(Path path, SeekableByteChannel channel) throws IOException {
         this.path = path;
         this.channel = channel;
+        this.recordData = new RecordData();
         this.mainHeader = new MainHeader();
         this.buffer = ByteBuffer.allocate(1024 * 10);
-    }
-
-    public MainHeader getMainHeader() {
-        return this.mainHeader;
     }
 
     public Path getPath() {
@@ -59,29 +57,17 @@ public class RecordStorage {
         this.mainHeader.read(this.channel, this.buffer);
     }
 
-    RecordHeader selectRecordHeader(byte[] key) throws IOException {
-        RecordHeaderIteratorByKey iteratorByKey = new RecordHeaderIteratorByKey(null, key);
-        if (iteratorByKey.hasNext()) {
-            return iteratorByKey.next();
-        }
-        return null;
-    }
-
     public int updateRecord(byte[] key, ByteBuffer data) throws IOException {
-        RecordHeader recordHeader = selectRecordHeader(key);
+        RecordHeader recordHeader = deleteRecordHeader(key);
         if (recordHeader != null) {
-            recordHeader.setDeleted(true);
-            recordHeader.write(this.channel, this.buffer);
             return insertRecord(key, data);
         }
         return -1;
     }
 
     public int deleteRecord(byte[] key) throws IOException {
-        RecordHeader recordHeader = selectRecordHeader(key);
+        RecordHeader recordHeader = deleteRecordHeader(key);
         if (recordHeader != null) {
-            recordHeader.setDeleted(true);
-            recordHeader.write(this.channel, this.buffer);
             return recordHeader.getRecordIndex();
         }
         return -1;
@@ -90,34 +76,61 @@ public class RecordStorage {
     public int insertRecord(byte[] key, ByteBuffer data) throws IOException {
         RecordHeader recordHeader = findLastRecordHeader();
         if (recordHeader == null) {
+            // first RecordHeader
             recordHeader = new RecordHeader();
         } else {
+            // second and subsequent RecordHeaders
             recordHeader = recordHeader.nextHeader();
         }
         recordHeader.copyKey(key);
+
         recordHeader.initRecordDataLength(data);
-        updateMainHeader(recordHeader);
-        recordHeader.write(this.channel, this.buffer);
-        return recordHeader.getRecordIndex();
-    }
+        recordData.initFromRecordHeader(recordHeader);
+        this.mainHeader.initFromRecordHeader(recordHeader);
 
-    protected void updateMainHeader(RecordHeader recordHeader) throws IOException {
-        this.mainHeader.applyRecord(recordHeader);
         this.mainHeader.write(this.channel, this.buffer);
-    }
+        recordHeader.write(this.channel, this.buffer);
+        recordData.write(this.channel, this.buffer);
 
-    RecordHeader findLastRecordHeader() throws IOException {
-        RecordHeaderIterator iterator = new RecordHeaderIteratorAlive(lastRecordHeader);
-        RecordHeader nextRecordHeader = null;
-        while (iterator.hasNext()) {
-            nextRecordHeader = iterator.next();
-        }
-        return lastRecordHeader = nextRecordHeader;
+        return recordHeader.getRecordIndex();
     }
 
     public void close() throws IOException {
         this.mainHeader.write(this.channel, this.buffer);
         this.channel.close();
+    }
+
+    MainHeader getMainHeader() {
+        return this.mainHeader;
+    }
+
+    RecordHeader selectRecordHeader(byte[] key) throws IOException {
+        RecordHeaderIteratorByKey iteratorByKey = new RecordHeaderIteratorByKey(null, key);
+        if (iteratorByKey.hasNext()) {
+            return iteratorByKey.next();
+        }
+        return null;
+    }
+
+    RecordHeader deleteRecordHeader(byte[] key) throws IOException {
+        RecordHeader recordHeader = selectRecordHeader(key);
+        if (recordHeader != null) {
+            if (!recordHeader.isDeleted()) {
+                recordHeader.setDeleted(true);
+                recordHeader.write(this.channel, this.buffer);
+            }
+            return recordHeader;
+        }
+        return null;
+    }
+
+    RecordHeader findLastRecordHeader() throws IOException {
+        RecordHeaderIterator iterator = new RecordHeaderIterator(lastRecordHeader);
+        RecordHeader nextRecordHeader = null;
+        while (iterator.hasNext()) {
+            nextRecordHeader = iterator.next();
+        }
+        return lastRecordHeader = nextRecordHeader;
     }
 
     class RecordHeaderIterator implements Iterator<RecordHeader> {
@@ -180,7 +193,6 @@ public class RecordStorage {
         }
 
     }
-
 
     class RecordHeaderIteratorAlive extends RecordHeaderIterator {
 

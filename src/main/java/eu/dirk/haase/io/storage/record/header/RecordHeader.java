@@ -1,5 +1,8 @@
 package eu.dirk.haase.io.storage.record.header;
 
+import eu.dirk.haase.io.storage.record.StorageUnit;
+import eu.dirk.haase.io.storage.record.data.RecordData;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.sql.Timestamp;
@@ -23,8 +26,9 @@ final public class RecordHeader extends AbstractHeader {
 
     private final static MainHeader MAIN_HEADER = new MainHeader();
 
-    private final static long MAGIC_DATA = AbstractHeader.buildMagicData("RecHdr");
+    private final static long MAGIC_DATA = StorageUnit.buildMagicData("RecHdr");
 
+    private final static RecordData recordData = new RecordData();
 
     static {
         int headerLength = 0;
@@ -117,8 +121,10 @@ final public class RecordHeader extends AbstractHeader {
         nextRecordHeader.lastModifiedTimeMillis = System.currentTimeMillis();
         nextRecordHeader.bitfield = 0;
 
-        nextRecordHeader.setStartPointer(getEndPointer());
-        nextRecordHeader.setStartDataPointer(getEndPointer() + getLength());
+        long nextStartPointer = getEndPointer() + recordData.getLength();
+
+        nextRecordHeader.setStartPointer(nextStartPointer);
+        nextRecordHeader.setStartDataPointer(nextStartPointer + getLength());
         nextRecordHeader.setRecordDataCapacity(0);
         nextRecordHeader.setRecordDataLength(0);
         nextRecordHeader.setRecordIndex(getRecordIndex() + 1);
@@ -130,7 +136,6 @@ final public class RecordHeader extends AbstractHeader {
     public boolean hasRoomForNext(long overallSize) {
         return (getStartPointer() < overallSize);
     }
-
 
     public int getRecordIndex() {
         return recordIndex;

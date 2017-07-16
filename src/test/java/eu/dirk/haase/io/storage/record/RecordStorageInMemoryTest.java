@@ -1,8 +1,10 @@
 package eu.dirk.haase.io.storage.record;
 
 import eu.dirk.haase.io.storage.channel.SeekableInMemoryByteChannel;
+import eu.dirk.haase.io.storage.record.data.RecordData;
 import eu.dirk.haase.io.storage.record.header.MainHeader;
 import eu.dirk.haase.io.storage.record.header.RecordHeader;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -32,6 +34,13 @@ public class RecordStorageInMemoryTest extends RecordStorageFileTest {
         content = new byte[CAPACITY];
         buffer = ByteBuffer.wrap(content);
         super.setUp();
+    }
+
+    @After
+    public void tearDown() throws IOException {
+        buffer = null;
+        content = null;
+        super.tearDown();
     }
 
     @Override
@@ -68,37 +77,87 @@ public class RecordStorageInMemoryTest extends RecordStorageFileTest {
     public void testInsertOneRecord() throws IOException {
         // ===============
         // === Given
-        byte[] prolog = new byte[MainHeader.PROLOG.length];
-        int dataLength = 123;
-        ByteBuffer dataByteBuffer = ByteBuffer.allocate(dataLength);
-        MainHeader mainHeader = new MainHeader();
-        RecordHeader recordHeader = new RecordHeader();
-        int lastPosition = mainHeader.getLength() + recordHeader.getLength();
+        byte[] key1 = UUID.randomUUID().toString().getBytes();
+        int dataLength1 = 123;
+        ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
+
         recordStorage.create();
+
+        RecordHeader firstHeader = new RecordHeader();
+        RecordData firstData = new RecordData();
+        MainHeader mainHeader = recordStorage.getMainHeader();
+
+        int recordDatalength = firstData.getLength();
+        int recordHeaderLength = firstHeader.getLength();
+        int mainHeaderLength = mainHeader.getLength();
+        int recordOverallLength = recordHeaderLength + recordDatalength;
+
+        int firstPosition = mainHeaderLength;
+        int lastPosition = firstPosition + recordOverallLength;
         // ===============
         // === When
-        int recordIndex = recordStorage.insertRecord(null, dataByteBuffer);
+        int recordIndex = recordStorage.insertRecord(null, dataByteBuffer1);
         // ===============
         // === Then
         assertThat(channel.position()).isEqualTo(lastPosition);
-        //          - Layout of the MainHeader
-        assertThat(buffer.getLong()).isEqualTo(21780678656418930L); // => magic data
-        assertThat(buffer.getLong()).isEqualTo(0); // => startPointer
-        buffer.get(prolog);
-        assertThat(prolog).isEqualTo(MainHeader.PROLOG);  // => PROLOG
-        assertThat(buffer.getInt()).isEqualTo(1);  // => version
-        assertThat(buffer.getInt()).isEqualTo(1);  // => recordCount
-        assertThat(buffer.getInt()).isEqualTo(123);  // => maxRecordDataLength
-        assertThat(buffer.getInt()).isEqualTo(123);  // => minRecordDataLength
+        //          - Skip the MainHeader :
+        buffer.position(firstPosition);
         //       => RecordHeader ------------------
         assertThat(recordIndex).isEqualTo(0);
         //          - Layout of the first RecordHeader
-        assertThat(buffer.getLong()).isEqualTo(90595410863218L); // => magic data
+        assertThat(buffer.getLong()).isEqualTo(firstHeader.getMagicData()); // => magic data
         assertThat(buffer.getLong()).isEqualTo(mainHeader.getLength()); // => startPointer
-        assertThat(buffer.getLong()).isEqualTo(recordHeader.getEndPointer()); // => startDataPointer
-        assertThat(buffer.getInt()).isEqualTo(dataLength);  // => recordDataCapacity
-        assertThat(buffer.getInt()).isEqualTo(dataLength);  // => recordDataLength
+        assertThat(buffer.getLong()).isEqualTo(firstHeader.getEndPointer()); // => startDataPointer
+        assertThat(buffer.getInt()).isEqualTo(dataLength1);  // => recordDataCapacity
+        assertThat(buffer.getInt()).isEqualTo(dataLength1);  // => recordDataLength
         assertThat(buffer.getInt()).isEqualTo(0);  // => recordIndex
+        assertThat(buffer.getLong()).isLessThanOrEqualTo(System.currentTimeMillis()); // => lastModifiedTimeMillis
+    }
+
+    @Test
+    public void testUpdateOneRecord() throws IOException {
+        // ===============
+        // === Given
+        byte[] key1 = UUID.randomUUID().toString().getBytes();
+        int dataLength1 = 123;
+        ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
+
+        recordStorage.create();
+
+        RecordHeader firstHeader = new RecordHeader();
+        RecordData firstData = new RecordData();
+        MainHeader mainHeader = recordStorage.getMainHeader();
+
+        int recordDatalength = firstData.getLength();
+        int recordHeaderLength = firstHeader.getLength();
+        int mainHeaderLength = mainHeader.getLength();
+        int recordOverallLength = recordHeaderLength + recordDatalength;
+
+        int firstPosition = mainHeaderLength;
+        int secondPosition = firstPosition + recordOverallLength;
+        int lastPosition = secondPosition + recordOverallLength;
+
+        int recordIndex1a = recordStorage.insertRecord(key1, dataByteBuffer1);
+        // ===============
+        // === When
+        int recordIndex1b = recordStorage.updateRecord(key1, dataByteBuffer1);
+        // ===============
+        // === Then
+        assertThat(channel.position()).isEqualTo(lastPosition);
+        assertThat(recordIndex1a).isEqualTo(0);
+        assertThat(recordIndex1b).isEqualTo(1);
+        //          - Skip the MainHeader :
+        buffer.position(firstPosition);
+        //          - skip the first RecordHeader
+        buffer.position(secondPosition);
+        //       => RecordHeader ------------------
+        //          - Layout of the second RecordHeader
+        assertThat(buffer.getLong()).isEqualTo(firstHeader.getMagicData()); // => magic data
+        assertThat(buffer.getLong()).isEqualTo(secondPosition); // => startPointer
+        assertThat(buffer.getLong()).isEqualTo(secondPosition + recordHeaderLength); // => startDataPointer
+        assertThat(buffer.getInt()).isEqualTo(dataLength1);  // => recordDataCapacity
+        assertThat(buffer.getInt()).isEqualTo(dataLength1);  // => recordDataLength
+        assertThat(buffer.getInt()).isEqualTo(1);  // => recordIndex
         assertThat(buffer.getLong()).isLessThanOrEqualTo(System.currentTimeMillis()); // => lastModifiedTimeMillis
     }
 
@@ -106,18 +165,27 @@ public class RecordStorageInMemoryTest extends RecordStorageFileTest {
     public void testInsertTwoRecord() throws IOException {
         // ===============
         // === Given
-        byte[] prolog = new byte[MainHeader.PROLOG.length];
-        int dataLength1 = 123;
-        int dataLength2 = 23;
-        ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
-        ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(dataLength2);
         byte[] key1 = UUID.randomUUID().toString().getBytes();
         byte[] key2 = UUID.randomUUID().toString().getBytes();
-        MainHeader mainHeader = new MainHeader();
-        RecordHeader recordHeader = new RecordHeader();
-        int secondPosition = mainHeader.getLength() + recordHeader.getLength();
-        int lastPosition = secondPosition + recordHeader.getLength();
+        int dataLength1 = 123;
+        int dataLength2 = 123;
+        ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
+        ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(dataLength2);
+
         recordStorage.create();
+
+        RecordHeader firstHeader = new RecordHeader();
+        RecordData firstData = new RecordData();
+        MainHeader mainHeader = recordStorage.getMainHeader();
+
+        int recordDatalength = firstData.getLength();
+        int recordHeaderLength = firstHeader.getLength();
+        int mainHeaderLength = mainHeader.getLength();
+        int recordOverallLength = recordHeaderLength + recordDatalength;
+
+        int firstPosition = mainHeaderLength;
+        int secondPosition = firstPosition + recordOverallLength;
+        int lastPosition = secondPosition + recordOverallLength;
         // ===============
         // === When
         int recordIndex1 = recordStorage.insertRecord(key1, dataByteBuffer1);
@@ -125,26 +193,19 @@ public class RecordStorageInMemoryTest extends RecordStorageFileTest {
         // ===============
         // === Then
         assertThat(channel.position()).isEqualTo(lastPosition);
-        //          - Layout of the MainHeader
-        assertThat(buffer.getLong()).isEqualTo(21780678656418930L); // => magic data
-        assertThat(buffer.getLong()).isEqualTo(0); // => startPointer
-        buffer.get(prolog);
-        assertThat(prolog).isEqualTo(MainHeader.PROLOG);  // => PROLOG
-        assertThat(buffer.getInt()).isEqualTo(1);  // => version
-        assertThat(buffer.getInt()).isEqualTo(2);  // => recordCount
-        assertThat(buffer.getInt()).isEqualTo(dataLength1);  // => maxRecordDataLength
-        assertThat(buffer.getInt()).isEqualTo(dataLength2);  // => minRecordDataLength
+        //          - Skip the MainHeader :
+        buffer.position(firstPosition);
         //          - skip the first RecordHeader
         buffer.position(secondPosition);
         //       => RecordHeader ------------------
         assertThat(recordIndex1).isEqualTo(0);
         assertThat(recordIndex2).isEqualTo(1);
         //          - Layout of the second RecordHeader
-        assertThat(buffer.getLong()).isEqualTo(90595410863218L); // => magic data
+        assertThat(buffer.getLong()).isEqualTo(firstHeader.getMagicData()); // => magic data
         assertThat(buffer.getLong()).isEqualTo(secondPosition); // => startPointer
-        assertThat(buffer.getLong()).isEqualTo(lastPosition); // => startDataPointer
-        assertThat(buffer.getInt()).isEqualTo(dataLength2);  // => recordDataCapacity
-        assertThat(buffer.getInt()).isEqualTo(dataLength2);  // => recordDataLength
+        assertThat(buffer.getLong()).isEqualTo(secondPosition + recordHeaderLength); // => startDataPointer
+        assertThat(buffer.getInt()).isEqualTo(dataLength1);  // => recordDataCapacity
+        assertThat(buffer.getInt()).isEqualTo(dataLength1);  // => recordDataLength
         assertThat(buffer.getInt()).isEqualTo(1);  // => recordIndex
         assertThat(buffer.getLong()).isLessThanOrEqualTo(System.currentTimeMillis()); // => lastModifiedTimeMillis
     }
