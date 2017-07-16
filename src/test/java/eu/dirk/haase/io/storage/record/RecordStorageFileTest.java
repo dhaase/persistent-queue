@@ -85,7 +85,6 @@ public class RecordStorageFileTest {
         RecordHeader recordHeader2 = recordStorage.selectRecordHeader(key2);
         // ===============
         // === Then
-        assertThat(channel.position()).isEqualTo(lastPosition);
         //       => RecordHeader ------------------
         assertThat(recordHeader2).isNotNull();
         //          - Layout of the second RecordHeader
@@ -131,7 +130,6 @@ public class RecordStorageFileTest {
         RecordHeader recordHeader1 = recordStorage.selectRecordHeader(key1);
         // ===============
         // === Then
-        assertThat(channel.position()).isEqualTo(secondPosition);
         //       => RecordHeader ------------------
         assertThat(recordHeader1).isNotNull();
         //          - Layout of the first RecordHeader
@@ -304,7 +302,6 @@ public class RecordStorageFileTest {
         RecordHeader recordHeader = recordStorage.findLastRecordHeader();
         // ===============
         // === Then
-        assertThat(channel.position()).isEqualTo(lastPosition);
         assertThat(recordHeader).isNotNull();
         assertThat(recordHeader.isDeleted()).isTrue();
         //          - Layout of the second RecordHeader
@@ -352,7 +349,6 @@ public class RecordStorageFileTest {
         RecordHeader recordHeader = recordStorage.findLastRecordHeader();
         // ===============
         // === Then
-        assertThat(channel.position()).isEqualTo(lastPosition);
         assertThat(recordHeader).isNotNull();
         assertThat(recordHeader.isDeleted()).isFalse();
         //          - Layout of the first RecordHeader
