@@ -12,6 +12,7 @@ import org.junit.runners.BlockJUnit4ClassRunner;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -75,7 +76,7 @@ public class RecordStorageTest {
     }
 
     @Test
-    public void testAddOneRecord() throws IOException {
+    public void testInsertOneRecord() throws IOException {
         // ===============
         // === Given
         byte[] prolog = new byte[MainHeader.PROLOG.length];
@@ -111,7 +112,7 @@ public class RecordStorageTest {
     }
 
     @Test
-    public void testAddTwoRecord() throws IOException {
+    public void testInsertTwoRecord() throws IOException {
         // ===============
         // === Given
         byte[] prolog = new byte[MainHeader.PROLOG.length];
@@ -119,6 +120,8 @@ public class RecordStorageTest {
         int dataLength2 = 23;
         ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
         ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(dataLength2);
+        byte[] key1 = UUID.randomUUID().toString().getBytes();
+        byte[] key2 = UUID.randomUUID().toString().getBytes();
         MainHeader mainHeader = new MainHeader();
         RecordHeader recordHeader = new RecordHeader();
         int secondPosition = mainHeader.getLength() + recordHeader.getLength();
@@ -126,8 +129,8 @@ public class RecordStorageTest {
         recordStorage.create();
         // ===============
         // === When
-        int recordIndex1 = recordStorage.insertRecord(dataByteBuffer1, null);
-        int recordIndex2 = recordStorage.insertRecord(dataByteBuffer2, null);
+        int recordIndex1 = recordStorage.insertRecord(dataByteBuffer1, key1);
+        int recordIndex2 = recordStorage.insertRecord(dataByteBuffer2, key2);
         // ===============
         // === Then
         assertThat(channel.position()).isEqualTo(lastPosition);
@@ -151,6 +154,42 @@ public class RecordStorageTest {
         assertThat(buffer.getInt()).isEqualTo(dataLength2);  // => recordDataLength
         assertThat(buffer.getInt()).isEqualTo(1);  // => recordIndex
         assertThat(buffer.getLong()).isLessThanOrEqualTo(System.currentTimeMillis()); // => lastModifiedTimeMillis
+    }
+
+    @Test
+    public void testSelectOneRecord() throws IOException {
+        // ===============
+        // === Given
+        byte[] prolog = new byte[MainHeader.PROLOG.length];
+        int dataLength1 = 123;
+        int dataLength2 = 23;
+        ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
+        ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(dataLength2);
+        byte[] key1 = UUID.randomUUID().toString().getBytes();
+        byte[] key2 = UUID.randomUUID().toString().getBytes();
+        MainHeader mainHeader = new MainHeader();
+        RecordHeader recordHeader = new RecordHeader();
+        int secondPosition = mainHeader.getLength() + recordHeader.getLength();
+        int lastPosition = secondPosition + recordHeader.getLength();
+        recordStorage.create();
+        recordStorage.insertRecord(dataByteBuffer1, key1);
+        recordStorage.insertRecord(dataByteBuffer2, key2);
+        // ===============
+        // === When
+        RecordHeader recordHeader2 = recordStorage.selectRecordHeader(key2);
+        // ===============
+        // === Then
+        assertThat(channel.position()).isEqualTo(lastPosition);
+        //       => RecordHeader ------------------
+        assertThat(recordHeader2).isNotNull();
+        //          - Layout of the second RecordHeader
+        assertThat(recordHeader2.getStartPointer()).isEqualTo(secondPosition); // => startPointer
+        assertThat(recordHeader2.getStartDataPointer()).isEqualTo(lastPosition); // => startDataPointer
+        assertThat(recordHeader2.getRecordDataCapacity()).isEqualTo(dataLength2);  // => recordDataCapacity
+        assertThat(recordHeader2.getRecordDataLength()).isEqualTo(dataLength2);  // => recordDataLength
+        assertThat(recordHeader2.getRecordIndex()).isEqualTo(1);  // => recordIndex
+        assertThat(recordHeader2.getLastModifiedTimeMillis()).isLessThanOrEqualTo(System.currentTimeMillis()); // => lastModifiedTimeMillis
+        assertThat(recordHeader2.getKey()).isEqualTo(key2); // => key
     }
 
     @Test
@@ -190,7 +229,7 @@ public class RecordStorageTest {
 
 
     @Test
-    public void testFindLastRecord_WithTwoRecord() throws IOException {
+    public void testFindLastRecord_WithTwoRecords() throws IOException {
         // ===============
         // === Given
         int dataLength = 123;
@@ -198,7 +237,6 @@ public class RecordStorageTest {
         recordStorage.create();
         recordStorage.insertRecord(dataByteBuffer, null);
         recordStorage.insertRecord(dataByteBuffer, null);
-        MainHeader mainHeader = recordStorage.getMainHeader();
         RecordHeader secondRecordHeader = new RecordHeader().nextHeader();
         // ===============
         // === When

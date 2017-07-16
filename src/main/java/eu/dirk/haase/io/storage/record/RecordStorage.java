@@ -10,6 +10,7 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Iterator;
 
 /**
@@ -24,6 +25,8 @@ public class RecordStorage {
     private final ByteBuffer buffer;
 
     private final Path path;
+
+    private RecordHeader lastRecordHeader;
 
     public RecordStorage(File file, OpenOption... options) throws IOException {
         this(file.toPath(), options);
@@ -56,6 +59,14 @@ public class RecordStorage {
         this.mainHeader.read(this.channel, this.buffer);
     }
 
+    RecordHeader selectRecordHeader(byte[] key) throws IOException {
+        RecordHeaderIteratorByKey iteratorByKey = new RecordHeaderIteratorByKey(null, key);
+        if (iteratorByKey.hasNext()) {
+            return iteratorByKey.next();
+        }
+        return null;
+    }
+
     public int insertRecord(ByteBuffer data, byte[] key) throws IOException {
         RecordHeader recordHeader = findLastRecordHeader();
         if (recordHeader == null) {
@@ -64,6 +75,9 @@ public class RecordStorage {
             recordHeader = recordHeader.nextHeader();
         }
         int dataLength = (data != null ? data.limit() : 0);
+        if (key != null) {
+            System.arraycopy(key, 0, recordHeader.getKey(), 0, recordHeader.getKey().length);
+        }
         recordHeader.setRecordDataCapacity(dataLength);
         recordHeader.setRecordDataLength(dataLength);
         updateMainHeader(recordHeader);
@@ -77,12 +91,12 @@ public class RecordStorage {
     }
 
     RecordHeader findLastRecordHeader() throws IOException {
-        RecordHeaderIterator iterator = new RecordHeaderIterator();
+        RecordHeaderIterator iterator = new RecordHeaderIterator(lastRecordHeader);
         RecordHeader nextRecordHeader = null;
         while (iterator.hasNext()) {
             nextRecordHeader = iterator.next();
         }
-        return nextRecordHeader;
+        return lastRecordHeader = nextRecordHeader;
     }
 
     public void close() throws IOException {
@@ -96,9 +110,9 @@ public class RecordStorage {
 
         RecordHeader nextRecordHeader = null;
 
-        RecordHeaderIterator() throws IOException {
+        RecordHeaderIterator(RecordHeader startRecordHeader) throws IOException {
             overallSize = RecordStorage.this.channel.size();
-            nextRecordHeader = new RecordHeader();
+            nextRecordHeader = (startRecordHeader != null ? startRecordHeader : new RecordHeader());
         }
 
         @Override
@@ -106,7 +120,7 @@ public class RecordStorage {
             try {
                 if (nextRecordHeader.hasRoomForNext(overallSize)) {
                     nextRecordHeader.read(RecordStorage.this.channel, RecordStorage.this.buffer);
-                    return nextRecordHeader.isConstistent();
+                    return nextRecordHeader.isValid();
                 }
             } catch (Exception ex) {
                 throw new RuntimeException(ex);
@@ -124,5 +138,30 @@ public class RecordStorage {
         @Override
         public void remove() {
         }
+    }
+
+    class RecordHeaderIteratorByKey extends RecordHeaderIterator {
+
+        final byte[] key;
+
+        RecordHeaderIteratorByKey(RecordHeader startRecordHeader, byte[] key) throws IOException {
+            super(startRecordHeader);
+            this.key = key;
+        }
+
+        @Override
+        public boolean hasNext() {
+            boolean hasNext = super.hasNext();
+            while (hasNext) {
+                if (Arrays.equals(key, this.nextRecordHeader.getKey())) {
+                    return true;
+                } else {
+                    next();
+                    hasNext = super.hasNext();
+                }
+            }
+            return false;
+        }
+
     }
 }

@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Created by dhaa on 15.07.17.
@@ -14,6 +15,8 @@ final public class RecordHeader extends AbstractHeader {
     private final static String TIMESTAMP_STR = "2017-01-01 00:00:00";
 
     private final static long MIN_TIMESTAMP = Timestamp.valueOf(TIMESTAMP_STR).getTime();
+
+    private final static int KEY_LENGTH = UUID.randomUUID().toString().getBytes().length;
 
     private final static int SUB_HEADER_LENGTH;
 
@@ -29,10 +32,15 @@ final public class RecordHeader extends AbstractHeader {
         headerLength += 4; // size of int for recordDataLength
         headerLength += 4; // size of int for recordIndex
         headerLength += 8; // size of int for lastModifiedTimeMillis
+        headerLength += KEY_LENGTH; // size of the key
 
         SUB_HEADER_LENGTH = headerLength;
     }
 
+    /**
+     * Key of this Record.
+     */
+    private final byte[] key;
     /**
      * Start pointer to the first byte of the data within the storage unit.
      */
@@ -51,7 +59,6 @@ final public class RecordHeader extends AbstractHeader {
      * Milliseconds since January 1, 1970, 00:00:00 GMT.
      */
     private long lastModifiedTimeMillis;
-
     /**
      * Index position of the Record.
      */
@@ -62,9 +69,13 @@ final public class RecordHeader extends AbstractHeader {
      */
     public RecordHeader() {
         super(SUB_HEADER_LENGTH);
+        this.key = new byte[KEY_LENGTH];
         initFirstHeader();
     }
 
+    public byte[] getKey() {
+        return key;
+    }
 
     private void initFirstHeader() {
         lastModifiedTimeMillis = System.currentTimeMillis();
@@ -154,6 +165,7 @@ final public class RecordHeader extends AbstractHeader {
         buffer.putInt(recordDataLength);
         buffer.putInt(recordIndex);
         buffer.putLong(System.currentTimeMillis());
+        buffer.put(key);
     }
 
     @Override
@@ -164,6 +176,7 @@ final public class RecordHeader extends AbstractHeader {
         recordDataLength = buffer.getInt();
         recordIndex = buffer.getInt();
         lastModifiedTimeMillis = buffer.getLong();
+        buffer.get(key);
     }
 
     public long getStartDataPointer() {

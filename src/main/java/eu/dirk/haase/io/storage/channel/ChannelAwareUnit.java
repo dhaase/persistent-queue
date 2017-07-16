@@ -2,7 +2,6 @@ package eu.dirk.haase.io.storage.channel;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.channels.SeekableByteChannel;
 
 /**
@@ -12,7 +11,7 @@ public abstract class ChannelAwareUnit {
 
     private boolean isConstistent;
 
-    public boolean isConstistent() {
+    public boolean isValid() {
         return isConstistent;
     }
 

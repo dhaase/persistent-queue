@@ -36,7 +36,7 @@ final public class MainHeader extends AbstractHeader {
     /**
      * Structure Version of the storage unit.
      */
-    private byte[] prolog;
+    private final byte[] prolog;
     /**
      * Structure Version of the storage unit.
      */
@@ -57,6 +57,7 @@ final public class MainHeader extends AbstractHeader {
 
     public MainHeader() {
         super(SUB_HEADER_LENGTH);
+        this.prolog = new byte[PROLOG.length];
         setStartPointer(0);
     }
 
@@ -111,7 +112,6 @@ final public class MainHeader extends AbstractHeader {
     @Override
     public void read(ByteBuffer buffer) {
         super.read(buffer);
-        prolog = new byte[PROLOG.length];
         buffer.get(prolog);
         version = buffer.getInt();
         recordCount = buffer.getInt();
