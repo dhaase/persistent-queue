@@ -121,7 +121,7 @@ final public class RecordHeader extends AbstractHeader {
         nextRecordHeader.lastModifiedTimeMillis = System.currentTimeMillis();
         nextRecordHeader.bitfield = 0;
 
-        long nextStartPointer = getEndPointer() + recordData.getLength();
+        long nextStartPointer = getEndPointer() + recordData.getLength() + getRecordDataCapacity();
 
         nextRecordHeader.setStartPointer(nextStartPointer);
         nextRecordHeader.setStartDataPointer(nextStartPointer + getLength());

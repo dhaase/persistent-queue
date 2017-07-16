@@ -59,9 +59,11 @@ public class RecordStorageFileTest {
         byte[] key1 = UUID.randomUUID().toString().getBytes();
         byte[] key2 = UUID.randomUUID().toString().getBytes();
         int dataLength1 = 123;
-        int dataLength2 = 123;
+        int dataLength2 = 321;
         ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
         ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(dataLength2);
+        dataByteBuffer1.position(dataLength1);
+        dataByteBuffer2.position(dataLength2);
 
         recordStorage.create();
 
@@ -72,11 +74,12 @@ public class RecordStorageFileTest {
         int recordDatalength = firstData.getLength();
         int recordHeaderLength = firstHeader.getLength();
         int mainHeaderLength = mainHeader.getLength();
-        int recordOverallLength = recordHeaderLength + recordDatalength;
+
+        int firstRecordLengthOverall = recordHeaderLength + recordDatalength + dataLength1;
 
         int firstPosition = mainHeaderLength;
-        int secondPosition = firstPosition + recordOverallLength;
-        int lastPosition = firstPosition + recordOverallLength + recordHeaderLength;
+        int secondPosition = firstPosition + firstRecordLengthOverall;
+        int secondDataPosition = secondPosition + recordHeaderLength;
 
         recordStorage.insertRecord(key1, dataByteBuffer1);
         recordStorage.insertRecord(key2, dataByteBuffer2);
@@ -89,7 +92,7 @@ public class RecordStorageFileTest {
         assertThat(recordHeader2).isNotNull();
         //          - Layout of the second RecordHeader
         assertThat(recordHeader2.getStartPointer()).isEqualTo(secondPosition); // => startPointer
-        assertThat(recordHeader2.getStartDataPointer()).isEqualTo(lastPosition); // => startDataPointer
+        assertThat(recordHeader2.getStartDataPointer()).isEqualTo(secondDataPosition); // => startDataPointer
         assertThat(recordHeader2.getRecordDataCapacity()).isEqualTo(dataLength2);  // => recordDataCapacity
         assertThat(recordHeader2.getRecordDataLength()).isEqualTo(dataLength2);  // => recordDataLength
         assertThat(recordHeader2.getRecordIndex()).isEqualTo(1);  // => recordIndex
@@ -107,21 +110,19 @@ public class RecordStorageFileTest {
         int dataLength2 = 321;
         ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
         ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(dataLength2);
+        dataByteBuffer1.position(dataLength1);
+        dataByteBuffer2.position(dataLength2);
 
         recordStorage.create();
 
         RecordHeader firstHeader = new RecordHeader();
-        RecordData firstData = new RecordData();
         MainHeader mainHeader = recordStorage.getMainHeader();
 
-        int recordDatalength = firstData.getLength();
         int recordHeaderLength = firstHeader.getLength();
         int mainHeaderLength = mainHeader.getLength();
-        int recordOverallLength = recordHeaderLength + recordDatalength;
 
         int firstPosition = mainHeaderLength;
-        int secondPosition = firstPosition + recordHeaderLength;
-        int lastPosition = firstPosition + recordHeaderLength + recordHeaderLength;
+        int firstDataPosition = firstPosition + recordHeaderLength;
 
         recordStorage.insertRecord(key1, dataByteBuffer1);
         recordStorage.insertRecord(key2, dataByteBuffer2);
@@ -135,7 +136,7 @@ public class RecordStorageFileTest {
         //          - Layout of the first RecordHeader
         assertThat(recordHeader1.getMagicData()).isEqualTo(firstHeader.getMagicData()); // => magic data
         assertThat(recordHeader1.getStartPointer()).isEqualTo(firstPosition); // => startPointer
-        assertThat(recordHeader1.getStartDataPointer()).isEqualTo(firstPosition + recordHeaderLength); // => startDataPointer
+        assertThat(recordHeader1.getStartDataPointer()).isEqualTo(firstDataPosition); // => startDataPointer
         assertThat(recordHeader1.getRecordDataCapacity()).isEqualTo(dataLength1);  // => recordDataCapacity
         assertThat(recordHeader1.getRecordDataLength()).isEqualTo(dataLength1);  // => recordDataLength
         assertThat(recordHeader1.getRecordIndex()).isEqualTo(0);  // => recordIndex
@@ -161,6 +162,7 @@ public class RecordStorageFileTest {
         byte[] key1 = UUID.randomUUID().toString().getBytes();
         int dataLength1 = 123;
         ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
+        dataByteBuffer1.position(dataLength1);
 
         recordStorage.create();
         recordStorage.insertRecord(key1, dataByteBuffer1);
@@ -196,13 +198,26 @@ public class RecordStorageFileTest {
         int dataLength2 = 321;
         ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
         ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(dataLength2);
+        dataByteBuffer1.position(dataLength1);
+        dataByteBuffer2.position(dataLength2);
 
         recordStorage.create();
 
         recordStorage.insertRecord(key1, dataByteBuffer1);
         recordStorage.insertRecord(key2, dataByteBuffer2);
 
-        RecordHeader secondRecordHeader = new RecordHeader().nextHeader();
+        RecordHeader firstHeader = new RecordHeader();
+        RecordData firstData = new RecordData();
+        MainHeader mainHeader = recordStorage.getMainHeader();
+
+        int recordDatalength = firstData.getLength();
+        int recordHeaderLength = firstHeader.getLength();
+        int mainHeaderLength = mainHeader.getLength();
+
+        int firstRecordLengthOverall = recordHeaderLength + recordDatalength + dataLength1;
+
+        int firstPosition = mainHeaderLength;
+        int secondPosition = firstPosition + firstRecordLengthOverall;
         // ===============
         // === When
         RecordHeader recordHeader = recordStorage.findLastRecordHeader();
@@ -210,12 +225,14 @@ public class RecordStorageFileTest {
         // === Then
         assertThat(recordHeader).isNotNull();
         assertThat(recordHeader.isDeleted()).isFalse();
-        assertThat(recordHeader.getStartPointer()).isEqualTo(secondRecordHeader.getStartPointer());
-        assertThat(recordHeader.getStartDataPointer()).isEqualTo(secondRecordHeader.getEndPointer());
-        assertThat(recordHeader.getRecordDataCapacity()).isEqualTo(dataLength2);
-        assertThat(recordHeader.getRecordDataLength()).isEqualTo(dataLength2);
-        assertThat(recordHeader.getRecordIndex()).isEqualTo(secondRecordHeader.getRecordIndex());
-        assertThat(recordHeader.getLastModifiedTimeMillis()).isLessThanOrEqualTo(secondRecordHeader.getLastModifiedTimeMillis());
+        //          - Layout of the second RecordHeader
+        assertThat(recordHeader.getMagicData()).isEqualTo(firstHeader.getMagicData()); // => magic data
+        assertThat(recordHeader.getStartPointer()).isEqualTo(secondPosition); // => startPointer
+        assertThat(recordHeader.getStartDataPointer()).isEqualTo(secondPosition + recordHeaderLength); // => startDataPointer
+        assertThat(recordHeader.getRecordDataCapacity()).isEqualTo(dataLength2);  // => recordDataCapacity
+        assertThat(recordHeader.getRecordDataLength()).isEqualTo(dataLength2);  // => recordDataLength
+        assertThat(recordHeader.getRecordIndex()).isEqualTo(1);  // => recordIndex
+        assertThat(recordHeader.getLastModifiedTimeMillis()).isLessThanOrEqualTo(System.currentTimeMillis()); // => lastModifiedTimeMillis
     }
 
 
@@ -226,6 +243,7 @@ public class RecordStorageFileTest {
         byte[] key1 = UUID.randomUUID().toString().getBytes();
         int dataLength1 = 123;
         ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
+        dataByteBuffer1.position(dataLength1);
 
         recordStorage.create();
         recordStorage.insertRecord(key1, dataByteBuffer1);
@@ -250,6 +268,8 @@ public class RecordStorageFileTest {
         int dataLength2 = 321;
         ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
         ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(dataLength2);
+        dataByteBuffer1.position(dataLength1);
+        dataByteBuffer2.position(dataLength2);
 
         recordStorage.create();
 
@@ -278,6 +298,8 @@ public class RecordStorageFileTest {
         int dataLength2 = 321;
         ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
         ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(dataLength2);
+        dataByteBuffer1.position(dataLength1);
+        dataByteBuffer2.position(dataLength2);
 
         recordStorage.create();
 
@@ -291,8 +313,7 @@ public class RecordStorageFileTest {
         int recordOverallLength = recordHeaderLength + recordDatalength;
 
         int firstPosition = mainHeaderLength;
-        int secondPosition = firstPosition + recordOverallLength;
-        int lastPosition = firstPosition + recordOverallLength + recordHeaderLength;
+        int secondPosition = firstPosition + recordOverallLength + dataLength1;
 
         recordStorage.insertRecord(key1, dataByteBuffer1);
         recordStorage.insertRecord(key2, dataByteBuffer2);
@@ -325,6 +346,8 @@ public class RecordStorageFileTest {
         int dataLength2 = 321;
         ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
         ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(dataLength2);
+        dataByteBuffer1.position(dataLength1);
+        dataByteBuffer2.position(dataLength2);
 
         recordStorage.create();
 
@@ -338,8 +361,7 @@ public class RecordStorageFileTest {
         int recordOverallLength = recordHeaderLength + recordDatalength;
 
         int firstPosition = mainHeaderLength;
-        int secondPosition = firstPosition + recordOverallLength;
-        int lastPosition = firstPosition + recordOverallLength + recordHeaderLength;
+        int secondPosition = firstPosition + recordOverallLength + dataLength1;
 
         recordStorage.insertRecord(key1, dataByteBuffer1);
         recordStorage.insertRecord(key2, dataByteBuffer2);

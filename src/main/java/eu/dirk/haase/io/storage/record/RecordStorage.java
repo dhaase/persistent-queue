@@ -73,7 +73,7 @@ public class RecordStorage {
         return -1;
     }
 
-    public int insertRecord(byte[] key, ByteBuffer data) throws IOException {
+    public int insertRecord(byte[] key, ByteBuffer dataBuffer) throws IOException {
         RecordHeader recordHeader = findLastRecordHeader();
         if (recordHeader == null) {
             // first RecordHeader
@@ -84,13 +84,14 @@ public class RecordStorage {
         }
         recordHeader.copyKey(key);
 
-        recordHeader.initRecordDataLength(data);
+        recordHeader.initRecordDataLength(dataBuffer);
         recordData.initFromRecordHeader(recordHeader);
         this.mainHeader.initFromRecordHeader(recordHeader);
 
         this.mainHeader.write(this.channel, this.buffer);
         recordHeader.write(this.channel, this.buffer);
         recordData.write(this.channel, this.buffer);
+        recordData.writeData(this.channel, dataBuffer);
 
         return recordHeader.getRecordIndex();
     }

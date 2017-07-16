@@ -5,6 +5,7 @@ import eu.dirk.haase.io.storage.record.header.RecordHeader;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SeekableByteChannel;
 
 /**
  * Created by dhaa on 16.07.17.
@@ -54,7 +55,7 @@ public class RecordData extends StorageUnit {
 
     @Override
     public int getLength() {
-        return HEADER_LENGTH;//recordDataLength;
+        return HEADER_LENGTH;
     }
 
     @Override
@@ -73,6 +74,37 @@ public class RecordData extends StorageUnit {
 
     public long getMagicData() {
         return MAGIC_DATA;
+    }
+
+    public int writeData(SeekableByteChannel channel, ByteBuffer source) throws IOException {
+        // Prepare ByteBuffer
+        source.flip();
+        // Write the content of the buffer to the channel.
+        int bytesWritten = channel.write(source);
+        if (bytesWritten != getRecordDataLength()) {
+            throw new IOException("Insufficient number of bytes written:" +
+                    " Count of bytes currently written "
+                    + bytesWritten
+                    + ", but expected amount is "
+                    + getRecordDataLength());
+        }
+        return bytesWritten;
+    }
+
+    public int readData(SeekableByteChannel channel, ByteBuffer target) throws IOException {
+        // Prepare ByteBuffer
+        target.clear();
+        target.limit(getRecordDataLength());
+        // Read the content of the entity, to which this channel is connected, into the buffer.
+        int bytesRead = channel.read(target);
+        if (bytesRead != getRecordDataLength()) {
+            throw new IOException("Insufficient number of bytes read:" +
+                    " Count of bytes currently read "
+                    + bytesRead
+                    + ", but expected amount is "
+                    + getRecordDataLength());
+        }
+        return bytesRead;
     }
 
 }
