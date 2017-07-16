@@ -67,10 +67,24 @@ public class RecordStorage {
         return null;
     }
 
+    public int updateRecord(byte[] key, ByteBuffer data) throws IOException {
+        RecordHeader recordHeader = selectRecordHeader(key);
+        if (recordHeader != null) {
+            recordHeader.setDeleted(true);
+            recordHeader.write(this.channel, this.buffer);
+            return insertRecord(key, data);
+        }
+        return -1;
+    }
+
     public int deleteRecord(byte[] key) throws IOException {
         RecordHeader recordHeader = selectRecordHeader(key);
-        //recordHeader
-        return recordHeader.getRecordIndex();
+        if (recordHeader != null) {
+            recordHeader.setDeleted(true);
+            recordHeader.write(this.channel, this.buffer);
+            return recordHeader.getRecordIndex();
+        }
+        return -1;
     }
 
     public int insertRecord(byte[] key, ByteBuffer data) throws IOException {
@@ -93,7 +107,7 @@ public class RecordStorage {
     }
 
     RecordHeader findLastRecordHeader() throws IOException {
-        RecordHeaderIterator iterator = new RecordHeaderIterator(lastRecordHeader);
+        RecordHeaderIterator iterator = new RecordHeaderIteratorAlive(lastRecordHeader);
         RecordHeader nextRecordHeader = null;
         while (iterator.hasNext()) {
             nextRecordHeader = iterator.next();
@@ -166,4 +180,28 @@ public class RecordStorage {
         }
 
     }
+
+
+    class RecordHeaderIteratorAlive extends RecordHeaderIterator {
+
+        RecordHeaderIteratorAlive(RecordHeader startRecordHeader) throws IOException {
+            super(startRecordHeader);
+        }
+
+        @Override
+        public boolean hasNext() {
+            boolean hasNext = super.hasNext();
+            while (hasNext) {
+                if (!this.nextRecordHeader.isDeleted()) {
+                    return true;
+                } else {
+                    next();
+                    hasNext = super.hasNext();
+                }
+            }
+            return false;
+        }
+
+    }
+
 }

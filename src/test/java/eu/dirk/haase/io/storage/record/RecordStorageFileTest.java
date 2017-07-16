@@ -149,6 +149,7 @@ public class RecordStorageFileTest {
         // ===============
         // === Then
         assertThat(recordHeader).isNotNull();
+        assertThat(recordHeader.isDeleted()).isFalse();
         assertThat(recordHeader.getStartPointer()).isEqualTo(mainHeader.getLength());
         assertThat(recordHeader.getStartDataPointer()).isEqualTo(firstRecordHeader.getEndPointer());
         assertThat(recordHeader.getRecordDataCapacity()).isEqualTo(dataLength);
@@ -174,12 +175,84 @@ public class RecordStorageFileTest {
         // ===============
         // === Then
         assertThat(recordHeader).isNotNull();
+        assertThat(recordHeader.isDeleted()).isFalse();
         assertThat(recordHeader.getStartPointer()).isEqualTo(secondRecordHeader.getStartPointer());
         assertThat(recordHeader.getStartDataPointer()).isEqualTo(secondRecordHeader.getEndPointer());
         assertThat(recordHeader.getRecordDataCapacity()).isEqualTo(dataLength);
         assertThat(recordHeader.getRecordDataLength()).isEqualTo(dataLength);
         assertThat(recordHeader.getRecordIndex()).isEqualTo(secondRecordHeader.getRecordIndex());
         assertThat(recordHeader.getLastModifiedTimeMillis()).isLessThanOrEqualTo(secondRecordHeader.getLastModifiedTimeMillis());
+    }
+
+
+    @Test
+    public void testFindLastRecord_WithOneRecord_ButDeleted() throws IOException {
+        // ===============
+        // === Given
+        int dataLength1 = 123;
+        byte[] key1 = UUID.randomUUID().toString().getBytes();
+        ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
+        recordStorage.create();
+        recordStorage.insertRecord(key1, dataByteBuffer1);
+        recordStorage.deleteRecord(key1);
+        // ===============
+        // === When
+        RecordHeader recordHeader = recordStorage.findLastRecordHeader();
+        // ===============
+        // === Then
+        assertThat(recordHeader).isNull();
+    }
+
+
+    @Test
+    public void testFindLastRecord_WithTwoRecords_ButAllDeleted() throws IOException {
+        // ===============
+        // === Given
+        int dataLength1 = 123;
+        byte[] key1 = UUID.randomUUID().toString().getBytes();
+        byte[] key2 = UUID.randomUUID().toString().getBytes();
+        ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
+        recordStorage.create();
+        recordStorage.insertRecord(key1, dataByteBuffer1);
+        recordStorage.insertRecord(key2, dataByteBuffer1);
+        recordStorage.deleteRecord(key1);
+        recordStorage.deleteRecord(key2);
+        // ===============
+        // === When
+        RecordHeader recordHeader = recordStorage.findLastRecordHeader();
+        // ===============
+        // === Then
+        assertThat(recordHeader).isNull();
+    }
+
+
+    @Test
+    public void testFindLastRecord_WithTwoRecords_ButOneDeleted() throws IOException {
+        // ===============
+        // === Given
+        int dataLength1 = 123;
+        byte[] key1 = UUID.randomUUID().toString().getBytes();
+        byte[] key2 = UUID.randomUUID().toString().getBytes();
+        ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
+        recordStorage.create();
+        recordStorage.insertRecord(key1, dataByteBuffer1);
+        recordStorage.insertRecord(key2, dataByteBuffer1);
+        recordStorage.deleteRecord(key2);
+        MainHeader mainHeader = recordStorage.getMainHeader();
+        RecordHeader firstRecordHeader = new RecordHeader();
+        // ===============
+        // === When
+        RecordHeader recordHeader = recordStorage.findLastRecordHeader();
+        // ===============
+        // === Then
+        assertThat(recordHeader).isNotNull();
+        assertThat(recordHeader.isDeleted()).isFalse();
+        assertThat(recordHeader.getStartPointer()).isEqualTo(mainHeader.getLength());
+        assertThat(recordHeader.getStartDataPointer()).isEqualTo(firstRecordHeader.getEndPointer());
+        assertThat(recordHeader.getRecordDataCapacity()).isEqualTo(dataLength1);
+        assertThat(recordHeader.getRecordDataLength()).isEqualTo(dataLength1);
+        assertThat(recordHeader.getRecordIndex()).isEqualTo(0);
+        assertThat(recordHeader.getLastModifiedTimeMillis()).isLessThanOrEqualTo(firstRecordHeader.getLastModifiedTimeMillis());
     }
 
 }

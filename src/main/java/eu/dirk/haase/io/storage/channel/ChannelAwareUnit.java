@@ -68,11 +68,15 @@ public abstract class ChannelAwareUnit {
                     + bytesRead
                     + ", but expected amount is "
                     + getLength());
+        } else {
+            // Initialize this Header.
+            target.flip();
+            read(target);
+            isValid = (prevStartPointer == getStartPointer());
+            if (isValid()) {
+                checkConsistency();
+            }
         }
-        // Initialize this Header.
-        target.flip();
-        read(target);
-        isValid = (prevStartPointer == getStartPointer());
         return bytesRead;
     }
 

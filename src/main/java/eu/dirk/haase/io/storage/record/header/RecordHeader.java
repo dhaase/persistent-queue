@@ -35,7 +35,7 @@ final public class RecordHeader extends AbstractHeader {
         headerLength += 4; // size of int for recordDataCapacity
         headerLength += 4; // size of int for recordDataLength
         headerLength += 4; // size of int for recordIndex
-        headerLength += 4; // size of int for flags
+        headerLength += 4; // size of int for bitfield
         headerLength += 8; // size of int for lastModifiedTimeMillis
         headerLength += KEY_LENGTH; // size of the key
 
@@ -69,9 +69,9 @@ final public class RecordHeader extends AbstractHeader {
      */
     private int recordIndex;
     /**
-     * Flags of the Record.
+     * bitfield of the Record.
      */
-    private int flags;
+    private int bitfield;
 
     /**
      * Creates a fresh RecordHeader.
@@ -94,6 +94,7 @@ final public class RecordHeader extends AbstractHeader {
         }
     }
 
+
     @Override
     public long getMagicData() {
         return MAGIC_DATA;
@@ -101,7 +102,7 @@ final public class RecordHeader extends AbstractHeader {
 
     private void initFirstHeader() {
         lastModifiedTimeMillis = System.currentTimeMillis();
-        flags = 0;
+        bitfield = 0;
         setStartPointer(MAIN_HEADER.getEndPointer());
         setStartDataPointer(getEndPointer());
         setRecordDataCapacity(0);
@@ -114,7 +115,7 @@ final public class RecordHeader extends AbstractHeader {
         RecordHeader nextRecordHeader = new RecordHeader();
 
         nextRecordHeader.lastModifiedTimeMillis = System.currentTimeMillis();
-        nextRecordHeader.flags = 0;
+        nextRecordHeader.bitfield = 0;
 
         nextRecordHeader.setStartPointer(getEndPointer());
         nextRecordHeader.setStartDataPointer(getEndPointer() + getLength());
@@ -190,7 +191,7 @@ final public class RecordHeader extends AbstractHeader {
         buffer.putInt(recordDataCapacity);
         buffer.putInt(recordDataLength);
         buffer.putInt(recordIndex);
-        buffer.putInt(flags);
+        buffer.putInt(bitfield);
         buffer.putLong(System.currentTimeMillis());
         buffer.put(key);
     }
@@ -202,7 +203,7 @@ final public class RecordHeader extends AbstractHeader {
         recordDataCapacity = buffer.getInt();
         recordDataLength = buffer.getInt();
         recordIndex = buffer.getInt();
-        flags = buffer.getInt();
+        bitfield = buffer.getInt();
         lastModifiedTimeMillis = buffer.getLong();
         buffer.get(key);
     }
@@ -241,4 +242,35 @@ final public class RecordHeader extends AbstractHeader {
         super.setStartPointer(startPointer);
     }
 
+    public boolean isDeleted() {
+        return Bitfield.testBit(Bit.DELETE, bitfield);
+    }
+
+    public void setDeleted(boolean isDeleted) {
+        if (isDeleted) {
+            bitfield = Bitfield.setBit(Bit.DELETE, bitfield);
+        } else {
+            bitfield = Bitfield.clearBit(Bit.DELETE, bitfield);
+        }
+    }
+
+    enum Bit {
+        DELETE
+    }
+
+    static class Bitfield {
+
+        static boolean testBit(Bit bit, int bitfield) {
+            return (bitfield & (1 << bit.ordinal())) == (1 << bit.ordinal());
+        }
+
+        static int setBit(Bit bit, int bitfield) {
+            return (bitfield | (1 << bit.ordinal()));
+        }
+
+        static int clearBit(Bit bit, int bitfield) {
+            return (bitfield ^ (1 << bit.ordinal()));
+        }
+
+    }
 }
