@@ -95,9 +95,9 @@ public class RecordHeaderTest {
         RecordHeader nextHeader = firstHeader.nextHeader();
         // ============
         // Then
-        assertThat(nextHeader.getStartPointer()).isEqualTo(165L);
-        assertThat(nextHeader.getStartDataPointer()).isEqualTo(249L);
-        assertThat(nextHeader.getEndPointer()).isEqualTo(249L);
+        assertThat(nextHeader.getStartPointer()).isEqualTo(385L);
+        assertThat(nextHeader.getStartDataPointer()).isEqualTo(469L);
+        assertThat(nextHeader.getEndPointer()).isEqualTo(469L);
         assertThat(nextHeader.getLength()).isEqualTo(84);
         assertThat(nextHeader.getRecordDataCapacity()).isEqualTo(0);
         assertThat(nextHeader.getRecordDataLength()).isEqualTo(0);
