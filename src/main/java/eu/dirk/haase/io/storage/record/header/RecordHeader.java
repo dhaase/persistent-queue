@@ -133,6 +133,19 @@ final public class RecordHeader extends AbstractHeader {
     }
 
 
+    public void init(long nextStartPointer, int nextIndex, int dataLength) {
+        this.recordDataCapacity = this.recordDataLength = dataLength;
+
+        this.lastModifiedTimeMillis = System.currentTimeMillis();
+        this.bitfield = 0;
+
+        this.recordIndex = nextIndex;
+
+        this.setStartPointer(nextStartPointer);
+        this.setRecordDataStartPointer(nextStartPointer + getLength());
+    }
+
+
     public boolean hasRoomForNext(long overallSize) {
         return (getStartPointer() < overallSize);
     }

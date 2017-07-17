@@ -128,10 +128,10 @@ final public class MainHeader extends AbstractHeader {
         minRecordDataLength = buffer.getInt();
     }
 
-    public void initFromRecordHeader(RecordHeader header) {
-        this.recordCount = Math.max(header.getRecordIndex() + 1, this.recordCount);
-        this.maxRecordDataLength = Math.max(header.getRecordDataLength(), this.maxRecordDataLength);
-        this.minRecordDataLength = Math.min(header.getRecordDataLength(), this.minRecordDataLength);
+    public void initFromRecordHeader(RecordHeader recordHeader) {
+        this.recordCount = recordHeader.getRecordIndex();
+        this.maxRecordDataLength = Math.max(recordHeader.getRecordDataLength(), this.maxRecordDataLength);
+        this.minRecordDataLength = Math.min(recordHeader.getRecordDataLength(), this.minRecordDataLength);
     }
 
     public int getRecordCount() {

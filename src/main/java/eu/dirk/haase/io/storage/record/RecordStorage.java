@@ -16,6 +16,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by dhaa on 15.07.17.
@@ -26,14 +28,20 @@ public class RecordStorage {
 
     private final MainHeader mainHeader;
 
-    private final ByteBuffer buffer;
+    private final ByteBuffer headerBuffer;
 
     private final Path path;
 
-    private final RecordData recordData;
+    private final RecordData currRecordData;
+
+    private final RecordHeader currRecordHeader;
+
     private final Set<OpenOption> mutableOpenOptionSet = new HashSet<OpenOption>();
     private final Set<OpenOption> openOptionSet = Collections.unmodifiableSet(mutableOpenOptionSet);
-
+    private final int overallRecordHeaderLength;
+    private final AtomicLong tailPointer;
+    private final AtomicInteger nextRecordIndex;
+    private final Shared shared;
     private RecordHeader lastRecordHeader;
 
     public RecordStorage(File file, OpenOption... options) throws IOException {
@@ -48,9 +56,22 @@ public class RecordStorage {
     public RecordStorage(Path path, SeekableByteChannel channel) throws IOException {
         this.path = path;
         this.channel = channel;
-        this.recordData = new RecordData();
         this.mainHeader = new MainHeader();
-        this.buffer = ByteBuffer.allocate(1024 * 10);
+        this.currRecordData = new RecordData();
+        this.currRecordHeader = new RecordHeader();
+        this.overallRecordHeaderLength = this.currRecordData.getLength() + this.currRecordHeader.getLength();
+        this.headerBuffer = ByteBuffer.allocate(calcBufferCapacity());
+        this.tailPointer = new AtomicLong(this.mainHeader.getLength());
+        this.nextRecordIndex = new AtomicInteger(0);
+        this.shared = new Shared();
+    }
+
+    private int calcBufferCapacity() {
+        int bufferCapacity = this.overallRecordHeaderLength + this.mainHeader.getLength();
+        // round n up to nearest multiple of m
+        int n = bufferCapacity;
+        int m = 1024;
+        return (n >= 0 ? ((n + m - 1) / m) * m : (n / m) * m);
     }
 
     private void fillOpenOptionSet(OpenOption[] options) {
@@ -68,19 +89,19 @@ public class RecordStorage {
     }
 
     public void create() throws IOException {
-        this.mainHeader.write(this.channel, this.buffer);
+        this.mainHeader.write(this.channel, this.headerBuffer);
     }
 
     public void initialize() throws IOException {
-        this.mainHeader.read(this.channel, this.buffer);
+        this.mainHeader.read(this.channel, this.headerBuffer);
     }
 
     public int selectRecord(byte[] key, ByteBuffer dataBuffer) throws IOException {
         RecordHeader recordHeader = selectRecordHeader(key);
         if ((recordHeader != null) && !recordHeader.isDeleted()) {
-            recordData.initFromRecordHeader(recordHeader);
-            recordData.read(this.channel, dataBuffer);
-            recordData.readData(this.channel, dataBuffer);
+            currRecordData.initFromRecordHeader(recordHeader);
+            currRecordData.read(this.channel, dataBuffer);
+            currRecordData.readData(this.channel, dataBuffer);
             return recordHeader.getRecordIndex();
         }
         return -1;
@@ -103,27 +124,32 @@ public class RecordStorage {
     }
 
     public int insertRecord(byte[] key, ByteBuffer dataBuffer) throws IOException {
-        RecordHeader recordHeader = findLastRecordHeader();
-        if (recordHeader == null) {
-            // first RecordHeader
-            recordHeader = new RecordHeader();
-        } else {
-            // second and subsequent RecordHeaders
-            recordHeader = recordHeader.nextHeader();
-        }
-        recordHeader.copyKey(key);
 
-        recordHeader.initRecordDataLength(dataBuffer);
-        recordData.initFromRecordHeader(recordHeader);
-        this.mainHeader.initFromRecordHeader(recordHeader);
+        int nextIndex = nextRecordIndex.getAndIncrement();
 
-        recordData.writeData(this.channel, dataBuffer);
-        recordData.write(this.channel, this.buffer);
-        recordHeader.write(this.channel, this.buffer);
-        this.mainHeader.write(this.channel, this.buffer);
+        int dataLength = shared.next(dataBuffer);
+        long nextRecordStartPointer = shared.getTailPointer() - dataLength;
 
-        return recordHeader.getRecordIndex();
+        this.currRecordHeader.init(nextRecordStartPointer, nextIndex, dataLength);
+        this.currRecordHeader.copyKey(key);
+
+        this.currRecordHeader.initRecordDataLength(dataBuffer);
+        this.currRecordData.initFromRecordHeader(this.currRecordHeader);
+        this.mainHeader.initFromRecordHeader(this.currRecordHeader);
+
+        this.currRecordData.writeData(this.channel, dataBuffer);
+        this.currRecordData.write(this.channel, this.headerBuffer);
+        this.currRecordHeader.write(this.channel, this.headerBuffer);
+        this.mainHeader.write(this.channel, this.headerBuffer);
+
+        return currRecordHeader.getRecordIndex();
     }
+
+
+    private int calcRecordLength(ByteBuffer dataBuffer) {
+        return (dataBuffer != null ? dataBuffer.position() : 0) + this.overallRecordHeaderLength;
+    }
+
 
     public void close() throws IOException {
         this.channel.close();
@@ -146,7 +172,7 @@ public class RecordStorage {
         if (recordHeader != null) {
             if (!recordHeader.isDeleted()) {
                 recordHeader.setDeleted(true);
-                recordHeader.write(this.channel, this.buffer);
+                recordHeader.write(this.channel, this.headerBuffer);
             }
             return recordHeader;
         }
@@ -177,7 +203,7 @@ public class RecordStorage {
         public boolean hasNext() {
             try {
                 if (nextRecordHeader.hasRoomForNext(overallSize)) {
-                    nextRecordHeader.read(RecordStorage.this.channel, RecordStorage.this.buffer);
+                    nextRecordHeader.read(RecordStorage.this.channel, RecordStorage.this.headerBuffer);
                     return nextRecordHeader.isValid();
                 }
             } catch (Exception ex) {
@@ -188,9 +214,9 @@ public class RecordStorage {
 
         @Override
         public RecordHeader next() {
-            RecordHeader currRecordHeader = nextRecordHeader;
+            RecordHeader currRecHeader = nextRecordHeader;
             nextRecordHeader = nextRecordHeader.nextHeader();
-            return currRecordHeader;
+            return currRecHeader;
         }
 
         @Override

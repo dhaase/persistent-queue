@@ -32,6 +32,7 @@ public class RecordStorageFileTest {
     @Before
     public void setUp() throws IOException {
         channel = createChannel();
+        Shared shared = new Shared();
         recordStorage = new RecordStorage(null, channel);
     }
 
@@ -447,6 +448,7 @@ public class RecordStorageFileTest {
         recordStorage = null;
         // ===============
         // === When
+        Shared shared = new Shared();
         RecordStorage reinitRecordStorage = new RecordStorage(file, StandardOpenOption.READ);
         reinitRecordStorage.initialize();
         int recordIndex1 = reinitRecordStorage.selectRecord(key1, dataByteBuffer1b);
