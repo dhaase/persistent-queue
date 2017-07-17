@@ -202,7 +202,7 @@ public class SeekableInMemoryByteChannel implements SeekableByteChannel {
     public SeekableByteChannel position(final long newPosition) throws IOException {
         // Precondition checks
         if (newPosition > Integer.MAX_VALUE || newPosition < 0) {
-            throw new IllegalArgumentException("Valid position for this channel is between 0 and " + Integer.MAX_VALUE);
+            throw new IllegalArgumentException("Valid position for this channel is between 0 and " + Integer.MAX_VALUE + " Current value was " + newPosition);
         }
         synchronized (this) {
             this.position = (int) newPosition;

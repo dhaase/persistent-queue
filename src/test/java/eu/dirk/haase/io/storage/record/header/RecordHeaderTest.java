@@ -53,7 +53,7 @@ public class RecordHeaderTest {
         // ============
         // Then
         assertThat(firstHeader.getStartPointer()).isEqualTo(81L);
-        assertThat(firstHeader.getStartDataPointer()).isEqualTo(165L);
+        assertThat(firstHeader.getRecordDataStartPointer()).isEqualTo(165L);
         assertThat(firstHeader.getEndPointer()).isEqualTo(165L);
         assertThat(firstHeader.getLength()).isEqualTo(84);
         assertThat(firstHeader.getRecordDataCapacity()).isEqualTo(0);
@@ -74,7 +74,7 @@ public class RecordHeaderTest {
         // ============
         // Then
         assertThat(firstHeader.getStartPointer()).isEqualTo(81L);
-        assertThat(firstHeader.getStartDataPointer()).isEqualTo(165L);
+        assertThat(firstHeader.getRecordDataStartPointer()).isEqualTo(165L);
         assertThat(firstHeader.getEndPointer()).isEqualTo(165L);
         assertThat(firstHeader.getLength()).isEqualTo(84);
         assertThat(firstHeader.getRecordDataCapacity()).isEqualTo(200);
@@ -96,7 +96,7 @@ public class RecordHeaderTest {
         // ============
         // Then
         assertThat(nextHeader.getStartPointer()).isEqualTo(385L);
-        assertThat(nextHeader.getStartDataPointer()).isEqualTo(469L);
+        assertThat(nextHeader.getRecordDataStartPointer()).isEqualTo(469L);
         assertThat(nextHeader.getEndPointer()).isEqualTo(469L);
         assertThat(nextHeader.getLength()).isEqualTo(84);
         assertThat(nextHeader.getRecordDataCapacity()).isEqualTo(0);
@@ -116,7 +116,7 @@ public class RecordHeaderTest {
         int startPointer = 78;
         givenHeader.setRecordDataCapacity(dataBlockCapacity);
         givenHeader.setRecordDataLength(occupiedBytes);
-        givenHeader.setStartDataPointer(startDataPointer);
+        givenHeader.setRecordDataStartPointer(startDataPointer);
         givenHeader.setStartPointer(startPointer);
         givenHeader.setDeleted(true);
         // ============
@@ -130,7 +130,7 @@ public class RecordHeaderTest {
         assertThat(givenHeader.getStartPointer()).isEqualTo(whenHeader.getStartPointer());
         assertThat(givenHeader.getRecordDataCapacity()).isEqualTo(whenHeader.getRecordDataCapacity());
         assertThat(givenHeader.getRecordDataLength()).isEqualTo(whenHeader.getRecordDataLength());
-        assertThat(givenHeader.getStartDataPointer()).isEqualTo(whenHeader.getStartDataPointer());
+        assertThat(givenHeader.getRecordDataStartPointer()).isEqualTo(whenHeader.getRecordDataStartPointer());
         assertThat(givenHeader.getLastModifiedTimeMillis()).isLessThanOrEqualTo(whenHeader.getLastModifiedTimeMillis());
         assertThat(givenHeader.isDeleted()).isTrue();
         assertThat(givenHeader.isDeleted()).isEqualTo(whenHeader.isDeleted());
@@ -138,7 +138,7 @@ public class RecordHeaderTest {
         assertThat(givenHeader.getStartPointer()).isEqualTo(startPointer);
         assertThat(givenHeader.getRecordDataCapacity()).isEqualTo(dataBlockCapacity);
         assertThat(givenHeader.getRecordDataLength()).isEqualTo(occupiedBytes);
-        assertThat(givenHeader.getStartDataPointer()).isEqualTo(startDataPointer);
+        assertThat(givenHeader.getRecordDataStartPointer()).isEqualTo(startDataPointer);
     }
 
     @Test
@@ -154,7 +154,7 @@ public class RecordHeaderTest {
         int startPointer = 1230;
         givenHeader.setRecordDataCapacity(dataBlockCapacity);
         givenHeader.setRecordDataLength(occupiedBytes);
-        givenHeader.setStartDataPointer(startDataPointer);
+        givenHeader.setRecordDataStartPointer(startDataPointer);
         givenHeader.setStartPointer(startPointer);
 
         ByteBuffer buffer1 = ByteBuffer.allocate(byteBufferCapacity);
@@ -175,7 +175,7 @@ public class RecordHeaderTest {
         assertThat(givenHeader.getStartPointer()).isEqualTo(whenHeader.getStartPointer());
         assertThat(givenHeader.getRecordDataCapacity()).isEqualTo(whenHeader.getRecordDataCapacity());
         assertThat(givenHeader.getRecordDataLength()).isEqualTo(whenHeader.getRecordDataLength());
-        assertThat(givenHeader.getStartDataPointer()).isEqualTo(whenHeader.getStartDataPointer());
+        assertThat(givenHeader.getRecordDataStartPointer()).isEqualTo(whenHeader.getRecordDataStartPointer());
         assertThat(givenHeader.getLastModifiedTimeMillis()).isLessThanOrEqualTo(whenHeader.getLastModifiedTimeMillis());
         assertThat(givenHeader.isDeleted()).isFalse();
         assertThat(givenHeader.isDeleted()).isEqualTo(whenHeader.isDeleted());
@@ -183,7 +183,7 @@ public class RecordHeaderTest {
         assertThat(givenHeader.getStartPointer()).isEqualTo(startPointer);
         assertThat(givenHeader.getRecordDataCapacity()).isEqualTo(dataBlockCapacity);
         assertThat(givenHeader.getRecordDataLength()).isEqualTo(occupiedBytes);
-        assertThat(givenHeader.getStartDataPointer()).isEqualTo(startDataPointer);
+        assertThat(givenHeader.getRecordDataStartPointer()).isEqualTo(startDataPointer);
     }
 
 
@@ -200,7 +200,7 @@ public class RecordHeaderTest {
         int startPointer = 1230;
         givenHeader.setRecordDataCapacity(dataBlockCapacity);
         givenHeader.setRecordDataLength(occupiedBytes);
-        givenHeader.setStartDataPointer(startDataPointer);
+        givenHeader.setRecordDataStartPointer(startDataPointer);
         givenHeader.setStartPointer(startPointer);
         givenHeader.setDeleted(true);
 
@@ -221,7 +221,7 @@ public class RecordHeaderTest {
         assertThat(givenHeader.getStartPointer()).isEqualTo(whenHeader.getStartPointer());
         assertThat(givenHeader.getRecordDataCapacity()).isEqualTo(whenHeader.getRecordDataCapacity());
         assertThat(givenHeader.getRecordDataLength()).isEqualTo(whenHeader.getRecordDataLength());
-        assertThat(givenHeader.getStartDataPointer()).isEqualTo(whenHeader.getStartDataPointer());
+        assertThat(givenHeader.getRecordDataStartPointer()).isEqualTo(whenHeader.getRecordDataStartPointer());
         assertThat(givenHeader.getLastModifiedTimeMillis()).isLessThanOrEqualTo(whenHeader.getLastModifiedTimeMillis());
         assertThat(givenHeader.isDeleted()).isTrue();
         assertThat(givenHeader.isDeleted()).isEqualTo(whenHeader.isDeleted());
@@ -229,7 +229,7 @@ public class RecordHeaderTest {
         assertThat(givenHeader.getStartPointer()).isEqualTo(startPointer);
         assertThat(givenHeader.getRecordDataCapacity()).isEqualTo(dataBlockCapacity);
         assertThat(givenHeader.getRecordDataLength()).isEqualTo(occupiedBytes);
-        assertThat(givenHeader.getStartDataPointer()).isEqualTo(startDataPointer);
+        assertThat(givenHeader.getRecordDataStartPointer()).isEqualTo(startDataPointer);
     }
 
 }

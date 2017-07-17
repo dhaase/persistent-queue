@@ -35,10 +35,23 @@ public class RecordData extends StorageUnit {
      * Length of the Record-Data (Payload Data).
      */
     private int recordDataLength;
+    /**
+     * Pointer to the Data.
+     */
+    private long dataStartPointer;
+
+    public long getDataStartPointer() {
+        return dataStartPointer;
+    }
+
+    public void setDataStartPointer(long dataStartPointer) {
+        this.dataStartPointer = dataStartPointer;
+    }
 
     public void initFromRecordHeader(RecordHeader recordHeader) {
-        setStartPointer(recordHeader.getStartDataPointer());
+        setStartPointer(recordHeader.getRecordDataStartPointer());
         setRecordDataLength(recordHeader.getRecordDataLength());
+        setDataStartPointer(getStartPointer() + HEADER_LENGTH);
     }
 
     public int getRecordDataLength() {
@@ -77,6 +90,8 @@ public class RecordData extends StorageUnit {
     }
 
     public int writeData(SeekableByteChannel channel, ByteBuffer source) throws IOException {
+        // Sets the channel's position to the Data's first byte.
+        channel.position(getDataStartPointer());
         // Prepare ByteBuffer
         source.flip();
         // Write the content of the buffer to the channel.
@@ -92,6 +107,8 @@ public class RecordData extends StorageUnit {
     }
 
     public int readData(SeekableByteChannel channel, ByteBuffer target) throws IOException {
+        // Sets the channel's position to the Data's first byte.
+        channel.position(getDataStartPointer());
         // Prepare ByteBuffer
         target.clear();
         target.limit(getRecordDataLength());

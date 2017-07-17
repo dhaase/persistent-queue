@@ -35,7 +35,7 @@ final public class RecordHeader extends AbstractHeader {
 
         // Sub-Layout of the AbstractHeader
         // (first Layout-Part see AbstractHeader.HEADER_LENGTH)
-        headerLength += 8; // size of long for startDataPointer
+        headerLength += 8; // size of long for recordDataStartPointer
         headerLength += 4; // size of int for recordDataCapacity
         headerLength += 4; // size of int for recordDataLength
         headerLength += 4; // size of int for recordIndex
@@ -53,7 +53,7 @@ final public class RecordHeader extends AbstractHeader {
     /**
      * Start pointer to the first byte of the data within the storage unit.
      */
-    private long startDataPointer;
+    private long recordDataStartPointer;
     /**
      * Overall byte capacity of the current block.
      */
@@ -108,7 +108,7 @@ final public class RecordHeader extends AbstractHeader {
         lastModifiedTimeMillis = System.currentTimeMillis();
         bitfield = 0;
         setStartPointer(MAIN_HEADER.getEndPointer());
-        setStartDataPointer(getEndPointer());
+        setRecordDataStartPointer(getEndPointer());
         setRecordDataCapacity(0);
         setRecordDataLength(0);
         setRecordIndex(0);
@@ -124,7 +124,7 @@ final public class RecordHeader extends AbstractHeader {
         long nextStartPointer = getEndPointer() + recordData.getLength() + getRecordDataCapacity();
 
         nextRecordHeader.setStartPointer(nextStartPointer);
-        nextRecordHeader.setStartDataPointer(nextStartPointer + getLength());
+        nextRecordHeader.setRecordDataStartPointer(nextStartPointer + getLength());
         nextRecordHeader.setRecordDataCapacity(0);
         nextRecordHeader.setRecordDataLength(0);
         nextRecordHeader.setRecordIndex(getRecordIndex() + 1);
@@ -153,12 +153,12 @@ final public class RecordHeader extends AbstractHeader {
     public List<String> enlistConsistencyErrors() throws IOException {
         List<String> errorReasonList = super.enlistConsistencyErrors();
         long storageHeaderEnd = (MAIN_HEADER.getStartPointer() + MAIN_HEADER.getLength());
-        if (startDataPointer < storageHeaderEnd) {
+        if (recordDataStartPointer < storageHeaderEnd) {
             errorReasonList = (errorReasonList != null ? errorReasonList : new ArrayList<String>());
-            errorReasonList.add("startDataPointer can not be"
+            errorReasonList.add("recordDataStartPointer can not be"
                     + " within the MainHeader"
-                    + ": RecordHeader.startDataPointer is currently at "
-                    + startDataPointer
+                    + ": RecordHeader.recordDataStartPointer is currently at "
+                    + recordDataStartPointer
                     + " and MainHeader ends at "
                     + storageHeaderEnd);
         }
@@ -192,7 +192,7 @@ final public class RecordHeader extends AbstractHeader {
     @Override
     public void write(ByteBuffer buffer) {
         super.write(buffer);
-        buffer.putLong(startDataPointer);
+        buffer.putLong(recordDataStartPointer);
         buffer.putInt(recordDataCapacity);
         buffer.putInt(recordDataLength);
         buffer.putInt(recordIndex);
@@ -204,7 +204,7 @@ final public class RecordHeader extends AbstractHeader {
     @Override
     public void read(ByteBuffer buffer) {
         super.read(buffer);
-        startDataPointer = buffer.getLong();
+        recordDataStartPointer = buffer.getLong();
         recordDataCapacity = buffer.getInt();
         recordDataLength = buffer.getInt();
         recordIndex = buffer.getInt();
@@ -213,12 +213,12 @@ final public class RecordHeader extends AbstractHeader {
         buffer.get(key);
     }
 
-    public long getStartDataPointer() {
-        return startDataPointer;
+    public long getRecordDataStartPointer() {
+        return recordDataStartPointer;
     }
 
-    public void setStartDataPointer(long startDataPointer) {
-        this.startDataPointer = startDataPointer;
+    public void setRecordDataStartPointer(long recordDataStartPointer) {
+        this.recordDataStartPointer = recordDataStartPointer;
     }
 
     public void initRecordDataLength(ByteBuffer data) {

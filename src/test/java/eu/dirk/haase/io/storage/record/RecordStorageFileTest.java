@@ -93,7 +93,7 @@ public class RecordStorageFileTest {
         assertThat(recordHeader2).isNotNull();
         //          - Layout of the second RecordHeader
         assertThat(recordHeader2.getStartPointer()).isEqualTo(secondPosition); // => startPointer
-        assertThat(recordHeader2.getStartDataPointer()).isEqualTo(secondDataPosition); // => startDataPointer
+        assertThat(recordHeader2.getRecordDataStartPointer()).isEqualTo(secondDataPosition); // => startDataPointer
         assertThat(recordHeader2.getRecordDataCapacity()).isEqualTo(dataLength2);  // => recordDataCapacity
         assertThat(recordHeader2.getRecordDataLength()).isEqualTo(dataLength2);  // => recordDataLength
         assertThat(recordHeader2.getRecordIndex()).isEqualTo(1);  // => recordIndex
@@ -137,7 +137,7 @@ public class RecordStorageFileTest {
         //          - Layout of the first RecordHeader
         assertThat(recordHeader1.getMagicData()).isEqualTo(firstHeader.getMagicData()); // => magic data
         assertThat(recordHeader1.getStartPointer()).isEqualTo(firstPosition); // => startPointer
-        assertThat(recordHeader1.getStartDataPointer()).isEqualTo(firstDataPosition); // => startDataPointer
+        assertThat(recordHeader1.getRecordDataStartPointer()).isEqualTo(firstDataPosition); // => startDataPointer
         assertThat(recordHeader1.getRecordDataCapacity()).isEqualTo(dataLength1);  // => recordDataCapacity
         assertThat(recordHeader1.getRecordDataLength()).isEqualTo(dataLength1);  // => recordDataLength
         assertThat(recordHeader1.getRecordIndex()).isEqualTo(0);  // => recordIndex
@@ -181,7 +181,7 @@ public class RecordStorageFileTest {
         assertThat(recordHeader).isNotNull();
         assertThat(recordHeader.isDeleted()).isFalse();
         assertThat(recordHeader.getStartPointer()).isEqualTo(firstPosition);
-        assertThat(recordHeader.getStartDataPointer()).isEqualTo(firstRecordHeader.getEndPointer());
+        assertThat(recordHeader.getRecordDataStartPointer()).isEqualTo(firstRecordHeader.getEndPointer());
         assertThat(recordHeader.getRecordDataCapacity()).isEqualTo(dataLength1);
         assertThat(recordHeader.getRecordDataLength()).isEqualTo(dataLength1);
         assertThat(recordHeader.getRecordIndex()).isEqualTo(0);
@@ -229,7 +229,7 @@ public class RecordStorageFileTest {
         //          - Layout of the second RecordHeader
         assertThat(recordHeader.getMagicData()).isEqualTo(firstHeader.getMagicData()); // => magic data
         assertThat(recordHeader.getStartPointer()).isEqualTo(secondPosition); // => startPointer
-        assertThat(recordHeader.getStartDataPointer()).isEqualTo(secondPosition + recordHeaderLength); // => startDataPointer
+        assertThat(recordHeader.getRecordDataStartPointer()).isEqualTo(secondPosition + recordHeaderLength); // => startDataPointer
         assertThat(recordHeader.getRecordDataCapacity()).isEqualTo(dataLength2);  // => recordDataCapacity
         assertThat(recordHeader.getRecordDataLength()).isEqualTo(dataLength2);  // => recordDataLength
         assertThat(recordHeader.getRecordIndex()).isEqualTo(1);  // => recordIndex
@@ -329,7 +329,7 @@ public class RecordStorageFileTest {
         //          - Layout of the second RecordHeader
         assertThat(recordHeader.getMagicData()).isEqualTo(firstHeader.getMagicData()); // => magic data
         assertThat(recordHeader.getStartPointer()).isEqualTo(secondPosition); // => startPointer
-        assertThat(recordHeader.getStartDataPointer()).isEqualTo(secondPosition + recordHeaderLength); // => startDataPointer
+        assertThat(recordHeader.getRecordDataStartPointer()).isEqualTo(secondPosition + recordHeaderLength); // => startDataPointer
         assertThat(recordHeader.getRecordDataCapacity()).isEqualTo(dataLength2);  // => recordDataCapacity
         assertThat(recordHeader.getRecordDataLength()).isEqualTo(dataLength2);  // => recordDataLength
         assertThat(recordHeader.getRecordIndex()).isEqualTo(1);  // => recordIndex
@@ -377,7 +377,7 @@ public class RecordStorageFileTest {
         //          - Layout of the first RecordHeader
         assertThat(recordHeader.getMagicData()).isEqualTo(firstHeader.getMagicData()); // => magic data
         assertThat(recordHeader.getStartPointer()).isEqualTo(secondPosition); // => startPointer
-        assertThat(recordHeader.getStartDataPointer()).isEqualTo(secondPosition + recordHeaderLength); // => startDataPointer
+        assertThat(recordHeader.getRecordDataStartPointer()).isEqualTo(secondPosition + recordHeaderLength); // => startDataPointer
         assertThat(recordHeader.getRecordDataCapacity()).isEqualTo(dataLength2);  // => recordDataCapacity
         assertThat(recordHeader.getRecordDataLength()).isEqualTo(dataLength2);  // => recordDataLength
         assertThat(recordHeader.getRecordIndex()).isEqualTo(1);  // => recordIndex
@@ -392,14 +392,12 @@ public class RecordStorageFileTest {
         byte[] key1 = UUID.randomUUID().toString().getBytes();
         byte[] key2 = UUID.randomUUID().toString().getBytes();
         int CAPACITY = 1024;
-        byte[] buffer1a = new byte[CAPACITY];
-        byte[] buffer2a = new byte[CAPACITY];
         byte[] buffer1b = new byte[CAPACITY];
         byte[] buffer2b = new byte[CAPACITY];
         byte[] data1 = "Das ist der erste Record".getBytes();
         byte[] data2 = "Das ist der zweite Record".getBytes();
-        ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(buffer1a.length);
-        ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(buffer2a.length);
+        ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(CAPACITY);
+        ByteBuffer dataByteBuffer2 = ByteBuffer.allocate(CAPACITY);
         ByteBuffer dataByteBuffer1b = ByteBuffer.wrap(buffer1b);
         ByteBuffer dataByteBuffer2b = ByteBuffer.wrap(buffer2b);
         dataByteBuffer1.put(data1);

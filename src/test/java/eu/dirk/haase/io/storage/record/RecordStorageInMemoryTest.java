@@ -6,6 +6,7 @@ import eu.dirk.haase.io.storage.record.header.MainHeader;
 import eu.dirk.haase.io.storage.record.header.RecordHeader;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.BlockJUnit4ClassRunner;
@@ -46,6 +47,13 @@ public class RecordStorageInMemoryTest extends RecordStorageFileTest {
     @Override
     protected SeekableByteChannel createChannel() {
         return new SeekableInMemoryByteChannel(content);
+    }
+
+
+    @Test
+    @Ignore
+    @Override
+    public void testInitializeRecordStorage() throws IOException {
     }
 
     @Test

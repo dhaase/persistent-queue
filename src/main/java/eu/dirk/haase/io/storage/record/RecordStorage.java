@@ -117,10 +117,10 @@ public class RecordStorage {
         recordData.initFromRecordHeader(recordHeader);
         this.mainHeader.initFromRecordHeader(recordHeader);
 
-        this.mainHeader.write(this.channel, this.buffer);
-        recordHeader.write(this.channel, this.buffer);
-        recordData.write(this.channel, this.buffer);
         recordData.writeData(this.channel, dataBuffer);
+        recordData.write(this.channel, this.buffer);
+        recordHeader.write(this.channel, this.buffer);
+        this.mainHeader.write(this.channel, this.buffer);
 
         return recordHeader.getRecordIndex();
     }
