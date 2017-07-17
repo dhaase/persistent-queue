@@ -24,8 +24,7 @@ public class Shared {
         this.sumRecordHeaderLength = recordData.getLength() + recordHeader.getLength();
     }
 
-    public long next(ByteBuffer dataBuffer) {
-        int dataLength = calcRecordLength(dataBuffer);
+    public long next(int dataLength) {
         return this.tailPointer.getAndAdd(dataLength);
     }
 

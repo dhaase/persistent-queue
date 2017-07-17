@@ -128,7 +128,7 @@ public class RecordStorage {
         int nextIndex = nextRecordIndex.getAndIncrement();
 
         int dataLength = shared.calcRecordLength(dataBuffer);
-        long nextRecordStartPointer = shared.next(dataBuffer);
+        long nextRecordStartPointer = shared.next(dataLength);
 
         this.currRecordHeader.init(nextRecordStartPointer, nextIndex, dataLength);
         this.currRecordHeader.copyKey(key);
