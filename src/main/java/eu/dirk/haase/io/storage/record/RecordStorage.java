@@ -127,8 +127,8 @@ public class RecordStorage {
 
         int nextIndex = nextRecordIndex.getAndIncrement();
 
-        int dataLength = shared.next(dataBuffer);
-        long nextRecordStartPointer = shared.getTailPointer() - dataLength;
+        int dataLength = shared.calcRecordLength(dataBuffer);
+        long nextRecordStartPointer = shared.next(dataBuffer);
 
         this.currRecordHeader.init(nextRecordStartPointer, nextIndex, dataLength);
         this.currRecordHeader.copyKey(key);
@@ -143,11 +143,6 @@ public class RecordStorage {
         this.mainHeader.write(this.channel, this.headerBuffer);
 
         return currRecordHeader.getRecordIndex();
-    }
-
-
-    private int calcRecordLength(ByteBuffer dataBuffer) {
-        return (dataBuffer != null ? dataBuffer.position() : 0) + this.overallRecordHeaderLength;
     }
 
 

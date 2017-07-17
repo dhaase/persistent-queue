@@ -24,18 +24,13 @@ public class Shared {
         this.sumRecordHeaderLength = recordData.getLength() + recordHeader.getLength();
     }
 
-    public long getTailPointer() {
-        return tailPointer.get();
-    }
-
-    public int next(ByteBuffer dataBuffer) {
+    public long next(ByteBuffer dataBuffer) {
         int dataLength = calcRecordLength(dataBuffer);
-        this.tailPointer.addAndGet(dataLength);
-        return dataLength;
+        return this.tailPointer.getAndAdd(dataLength);
     }
 
 
-    private int calcRecordLength(ByteBuffer dataBuffer) {
+    public int calcRecordLength(ByteBuffer dataBuffer) {
         return (dataBuffer != null ? dataBuffer.position() : 0) + this.sumRecordHeaderLength;
     }
 
