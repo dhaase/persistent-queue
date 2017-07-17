@@ -17,7 +17,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by dhaa on 15.07.17.
@@ -38,8 +37,6 @@ public class RecordStorage {
 
     private final Set<OpenOption> mutableOpenOptionSet = new HashSet<OpenOption>();
     private final Set<OpenOption> openOptionSet = Collections.unmodifiableSet(mutableOpenOptionSet);
-    private final int overallRecordHeaderLength;
-    private final AtomicLong tailPointer;
     private final AtomicInteger nextRecordIndex;
     private final Shared shared;
     private RecordHeader lastRecordHeader;
@@ -59,15 +56,14 @@ public class RecordStorage {
         this.mainHeader = new MainHeader();
         this.currRecordData = new RecordData();
         this.currRecordHeader = new RecordHeader();
-        this.overallRecordHeaderLength = this.currRecordData.getLength() + this.currRecordHeader.getLength();
         this.headerBuffer = ByteBuffer.allocate(calcBufferCapacity());
-        this.tailPointer = new AtomicLong(this.mainHeader.getLength());
         this.nextRecordIndex = new AtomicInteger(0);
         this.shared = new Shared();
     }
 
     private int calcBufferCapacity() {
-        int bufferCapacity = this.overallRecordHeaderLength + this.mainHeader.getLength();
+        int overallRecordHeaderLength = this.currRecordData.getLength() + this.currRecordHeader.getLength();
+        int bufferCapacity = overallRecordHeaderLength + this.mainHeader.getLength();
         // round n up to nearest multiple of m
         int n = bufferCapacity;
         int m = 1024;
