@@ -37,16 +37,22 @@ public class StribedRecordStorage implements RecordStorage {
 
     private RecordStorage getRecordStorage() {
         long id = Thread.currentThread().getId();
-        int index = Math.round(id % this.stribeCount);
-        return recordStorageArray.get(index);
+        long index = (id % this.stribeCount);
+        return recordStorageArray.get((int) index);
     }
 
     @Override
     public void create() throws IOException {
         synchronized (recordStorageArray) {
-            recordStorageArray.get(0).create();
+            RecordStorage recordStorage = recordStorageArray.get(0);
+            synchronized (recordStorage) {
+                recordStorage.create();
+            }
             for (int i = 1; count > i; ++i) {
-                recordStorageArray.get(i).initialize();
+                recordStorage = recordStorageArray.get(i);
+                synchronized (recordStorage) {
+                    recordStorage.initialize();
+                }
             }
         }
     }
@@ -55,7 +61,10 @@ public class StribedRecordStorage implements RecordStorage {
     public void initialize() throws IOException {
         synchronized (recordStorageArray) {
             for (int i = 0; count > i; ++i) {
-                recordStorageArray.get(i).initialize();
+                RecordStorage recordStorage = recordStorageArray.get(i);
+                synchronized (recordStorage) {
+                    recordStorage.initialize();
+                }
             }
         }
     }
@@ -96,7 +105,10 @@ public class StribedRecordStorage implements RecordStorage {
     public void close() throws IOException {
         synchronized (recordStorageArray) {
             for (int i = 0; count > i; ++i) {
-                recordStorageArray.get(i).close();
+                RecordStorage recordStorage = recordStorageArray.get(i);
+                synchronized (recordStorage) {
+                    recordStorage.close();
+                }
             }
         }
     }

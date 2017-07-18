@@ -9,7 +9,6 @@ import org.junit.runners.BlockJUnit4ClassRunner;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SeekableByteChannel;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 import java.util.UUID;
@@ -21,7 +20,6 @@ import java.util.UUID;
 public class RecordStorageTest {
 
     protected RecordStorage recordStorage;
-    protected SeekableByteChannel channel;
     private File file;
 
     @Before
@@ -68,21 +66,33 @@ public class RecordStorageTest {
         Thread t2 = new Thread(new Task(recordStorage));
         Thread t3 = new Thread(new Task(recordStorage));
         Thread t4 = new Thread(new Task(recordStorage));
+        Thread t5 = new Thread(new Task(recordStorage));
+        Thread t6 = new Thread(new Task(recordStorage));
+        Thread t7 = new Thread(new Task(recordStorage));
 
         t1.setDaemon(true);
         t2.setDaemon(true);
         t3.setDaemon(true);
         t4.setDaemon(true);
+        t5.setDaemon(true);
+        t6.setDaemon(true);
+        t7.setDaemon(true);
 
         t1.start();
         t2.start();
         t3.start();
         t4.start();
+        t5.start();
+        t6.start();
+        t7.start();
 
         t1.join();
         t2.join();
         t3.join();
         t4.join();
+        t5.join();
+        t6.join();
+        t7.join();
     }
 
 
