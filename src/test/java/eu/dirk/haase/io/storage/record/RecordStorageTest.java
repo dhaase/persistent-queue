@@ -93,6 +93,8 @@ public class RecordStorageTest {
         t5.join();
         t6.join();
         t7.join();
+
+        System.out.println("file size: " + file.length());
     }
 
 

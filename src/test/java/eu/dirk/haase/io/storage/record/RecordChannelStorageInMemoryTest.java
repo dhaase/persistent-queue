@@ -38,7 +38,7 @@ public class RecordChannelStorageInMemoryTest extends RecordChannelStorageFileTe
     }
 
     @After
-    public void tearDown() throws IOException {
+    public void tearDown() throws IOException, InterruptedException {
         buffer = null;
         content = null;
         super.tearDown();
@@ -57,7 +57,7 @@ public class RecordChannelStorageInMemoryTest extends RecordChannelStorageFileTe
     }
 
     @Test
-    public void testCreated() throws IOException {
+    public void testCreated() throws IOException, InterruptedException {
         // ===============
         // === Given
         byte[] prolog = new byte[MainHeader.PROLOG.length];
@@ -82,7 +82,7 @@ public class RecordChannelStorageInMemoryTest extends RecordChannelStorageFileTe
     }
 
     @Test
-    public void testInsertOneRecord() throws IOException {
+    public void testInsertOneRecord() throws IOException, InterruptedException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -125,7 +125,7 @@ public class RecordChannelStorageInMemoryTest extends RecordChannelStorageFileTe
     }
 
     @Test
-    public void testUpdateOneRecord() throws IOException {
+    public void testUpdateOneRecord() throws IOException, InterruptedException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -173,7 +173,7 @@ public class RecordChannelStorageInMemoryTest extends RecordChannelStorageFileTe
     }
 
     @Test
-    public void testInsertTwoRecord() throws IOException {
+    public void testInsertTwoRecord() throws IOException, InterruptedException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();

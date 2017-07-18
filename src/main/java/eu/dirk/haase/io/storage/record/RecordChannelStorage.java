@@ -24,7 +24,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * Created by dhaa on 15.07.17.
  */
-public class RecordChannelStorage implements BlockableRecordStorage {
+public class RecordChannelStorage implements RecordStorage {
 
     private final SeekableByteChannel channel;
 
@@ -71,16 +71,6 @@ public class RecordChannelStorage implements BlockableRecordStorage {
         this.writeLock = this.readWriteLock.writeLock();
     }
 
-    @Override
-    public Lock readLock() {
-        return readLock;
-    }
-
-    @Override
-    public Lock writeLock() {
-        return writeLock;
-    }
-
     public Shared getShared() {
         return shared;
     }
@@ -113,72 +103,106 @@ public class RecordChannelStorage implements BlockableRecordStorage {
     }
 
     @Override
-    public void create() throws IOException {
-        this.mainHeader.write(this.channel, this.headerBuffer);
-    }
-
-    @Override
-    public void initialize() throws IOException {
-        this.mainHeader.read(this.channel, this.headerBuffer);
-    }
-
-    @Override
-    public int selectRecord(byte[] key, ByteBuffer dataBuffer) throws IOException {
-        RecordHeader recordHeader = selectRecordHeader(key);
-        if ((recordHeader != null) && !recordHeader.isDeleted()) {
-            currRecordData.initFromRecordHeader(recordHeader);
-            currRecordData.read(this.channel, dataBuffer);
-            currRecordData.readData(this.channel, dataBuffer);
-            return recordHeader.getRecordIndex();
+    public void create() throws IOException, InterruptedException {
+        writeLock.lockInterruptibly();
+        try {
+            this.mainHeader.write(this.channel, this.headerBuffer);
+        } finally {
+            writeLock.unlock();
         }
-        return -1;
     }
 
     @Override
-    public int updateRecord(byte[] key, ByteBuffer dataBuffer) throws IOException {
-        RecordHeader recordHeader = deleteRecordHeader(key);
-        if (recordHeader != null) {
-            return insertRecord(key, dataBuffer);
+    public void initialize() throws IOException, InterruptedException {
+        readLock.lockInterruptibly();
+        try {
+            this.mainHeader.read(this.channel, this.headerBuffer);
+        } finally {
+            readLock.unlock();
         }
-        return -1;
     }
 
     @Override
-    public int deleteRecord(byte[] key) throws IOException {
-        RecordHeader recordHeader = deleteRecordHeader(key);
-        if (recordHeader != null) {
-            return recordHeader.getRecordIndex();
+    public int selectRecord(byte[] key, ByteBuffer dataBuffer) throws IOException, InterruptedException {
+        readLock.lockInterruptibly();
+        try {
+            RecordHeader recordHeader = selectRecordHeader(key);
+            if ((recordHeader != null) && !recordHeader.isDeleted()) {
+                currRecordData.initFromRecordHeader(recordHeader);
+                currRecordData.read(this.channel, dataBuffer);
+                currRecordData.readData(this.channel, dataBuffer);
+                return recordHeader.getRecordIndex();
+            }
+            return -1;
+        } finally {
+            readLock.unlock();
         }
-        return -1;
     }
 
     @Override
-    public int insertRecord(byte[] key, ByteBuffer dataBuffer) throws IOException {
+    public int updateRecord(byte[] key, ByteBuffer dataBuffer) throws IOException, InterruptedException {
+        writeLock.lockInterruptibly();
+        try {
+            RecordHeader recordHeader = deleteRecordHeader(key);
+            if (recordHeader != null) {
+                return insertRecord(key, dataBuffer);
+            }
+            return -1;
+        } finally {
+            writeLock.unlock();
+        }
+    }
 
-        int nextIndex = nextRecordIndex.getAndIncrement();
+    @Override
+    public int deleteRecord(byte[] key) throws IOException, InterruptedException {
+        writeLock.lockInterruptibly();
+        try {
+            RecordHeader recordHeader = deleteRecordHeader(key);
+            if (recordHeader != null) {
+                return recordHeader.getRecordIndex();
+            }
+            return -1;
+        } finally {
+            writeLock.unlock();
+        }
+    }
 
-        int dataLength = shared.calcRecordLength(dataBuffer);
-        long nextRecordStartPointer = shared.next(dataLength);
+    @Override
+    public int insertRecord(byte[] key, ByteBuffer dataBuffer) throws IOException, InterruptedException {
+        writeLock.lockInterruptibly();
+        try {
+            int nextIndex = nextRecordIndex.getAndIncrement();
 
-        this.currRecordHeader.init(nextRecordStartPointer, nextIndex, dataLength);
-        this.currRecordHeader.copyKey(key);
+            int dataLength = shared.calcRecordLength(dataBuffer);
+            long nextRecordStartPointer = shared.next(dataLength);
 
-        this.currRecordHeader.initRecordDataLength(dataBuffer);
-        this.currRecordData.initFromRecordHeader(this.currRecordHeader);
-        this.mainHeader.initFromRecordHeader(this.currRecordHeader);
+            this.currRecordHeader.init(nextRecordStartPointer, nextIndex, dataLength);
+            this.currRecordHeader.copyKey(key);
 
-        this.currRecordData.writeData(this.channel, dataBuffer);
-        this.currRecordData.write(this.channel, this.headerBuffer);
-        this.currRecordHeader.write(this.channel, this.headerBuffer);
-        this.mainHeader.write(this.channel, this.headerBuffer);
+            this.currRecordHeader.initRecordDataLength(dataBuffer);
+            this.currRecordData.initFromRecordHeader(this.currRecordHeader);
+            this.mainHeader.initFromRecordHeader(this.currRecordHeader);
 
-        return currRecordHeader.getRecordIndex();
+            this.currRecordData.writeData(this.channel, dataBuffer);
+            this.currRecordData.write(this.channel, this.headerBuffer);
+            this.currRecordHeader.write(this.channel, this.headerBuffer);
+            this.mainHeader.write(this.channel, this.headerBuffer);
+
+            return currRecordHeader.getRecordIndex();
+        } finally {
+            writeLock.unlock();
+        }
     }
 
 
     @Override
-    public void close() throws IOException {
-        this.channel.close();
+    public void close() throws IOException, InterruptedException {
+        writeLock.lockInterruptibly();
+        try {
+            this.channel.close();
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     MainHeader getMainHeader() {

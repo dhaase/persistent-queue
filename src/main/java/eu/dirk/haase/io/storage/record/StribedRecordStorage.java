@@ -16,7 +16,8 @@ public class StribedRecordStorage implements RecordStorage {
     private final int count;
     private final Shared shared;
 
-    private final AtomicReferenceArray<BlockableRecordStorage> recordStorageArray;
+    private final AtomicReferenceArray<RecordStorage> recordStorageArray;
+    private final RecordStorage[] recordStorages;
 
     public StribedRecordStorage(int count, File file, OpenOption... options) throws IOException {
         this(count, file.toPath(), options);
@@ -27,38 +28,26 @@ public class StribedRecordStorage implements RecordStorage {
         this.count = count;
         this.shared = new Shared();
         RecordChannelStorage recordChannelStorage;
-        BlockableRecordStorage[] recordStorages = new BlockableRecordStorage[count];
+        recordStorages = new RecordStorage[count];
         for (int i = 0; count > i; ++i) {
             recordStorages[i] = recordChannelStorage = new RecordChannelStorage(path, options);
             recordChannelStorage.setShared(this.shared);
         }
-        this.recordStorageArray = new AtomicReferenceArray<BlockableRecordStorage>(recordStorages);
+        this.recordStorageArray = new AtomicReferenceArray<RecordStorage>(recordStorages);
     }
 
-    private BlockableRecordStorage getRecordStorage() {
+    private RecordStorage getRecordStorage() {
         long id = Thread.currentThread().getId();
         long index = (id % this.stribeCount);
-        return recordStorageArray.get((int) index);
+        return recordStorages[(int) index]; //recordStorageArray.get((int) index);
     }
 
     @Override
     public void create() throws IOException, InterruptedException {
         synchronized (recordStorageArray) {
-            BlockableRecordStorage recordStorage = recordStorageArray.get(0);
-            recordStorage.writeLock().lockInterruptibly();
-            try {
-                recordStorage.create();
-            } finally {
-                recordStorage.writeLock().unlock();
-            }
+            recordStorageArray.get(0).create();
             for (int i = 1; count > i; ++i) {
-                recordStorage = recordStorageArray.get(i);
-                recordStorage.writeLock().lockInterruptibly();
-                try {
-                    recordStorage.initialize();
-                } finally {
-                    recordStorage.writeLock().unlock();
-                }
+                recordStorageArray.get(i).initialize();
             }
         }
     }
@@ -67,72 +56,36 @@ public class StribedRecordStorage implements RecordStorage {
     public void initialize() throws IOException, InterruptedException {
         synchronized (recordStorageArray) {
             for (int i = 0; count > i; ++i) {
-                BlockableRecordStorage recordStorage = recordStorageArray.get(i);
-                recordStorage.writeLock().lockInterruptibly();
-                try {
-                    recordStorage.initialize();
-                } finally {
-                    recordStorage.writeLock().unlock();
-                }
+                recordStorageArray.get(i).initialize();
             }
         }
     }
 
     @Override
     public int selectRecord(byte[] key, ByteBuffer dataBuffer) throws IOException, InterruptedException {
-        BlockableRecordStorage recordStorage = getRecordStorage();
-        recordStorage.readLock().lockInterruptibly();
-        try {
-            return recordStorage.selectRecord(key, dataBuffer);
-        } finally {
-            recordStorage.readLock().unlock();
-        }
+        return getRecordStorage().selectRecord(key, dataBuffer);
     }
 
     @Override
     public int updateRecord(byte[] key, ByteBuffer dataBuffer) throws IOException, InterruptedException {
-        BlockableRecordStorage recordStorage = getRecordStorage();
-        recordStorage.writeLock().lockInterruptibly();
-        try {
-            return getRecordStorage().updateRecord(key, dataBuffer);
-        } finally {
-            recordStorage.writeLock().unlock();
-        }
+        return getRecordStorage().updateRecord(key, dataBuffer);
     }
 
     @Override
     public int deleteRecord(byte[] key) throws IOException, InterruptedException {
-        BlockableRecordStorage recordStorage = getRecordStorage();
-        recordStorage.writeLock().lockInterruptibly();
-        try {
-            return getRecordStorage().deleteRecord(key);
-        } finally {
-            recordStorage.writeLock().unlock();
-        }
+        return getRecordStorage().deleteRecord(key);
     }
 
     @Override
     public int insertRecord(byte[] key, ByteBuffer dataBuffer) throws IOException, InterruptedException {
-        BlockableRecordStorage recordStorage = getRecordStorage();
-        recordStorage.writeLock().lockInterruptibly();
-        try {
-            return getRecordStorage().insertRecord(key, dataBuffer);
-        } finally {
-            recordStorage.writeLock().unlock();
-        }
+        return getRecordStorage().insertRecord(key, dataBuffer);
     }
 
     @Override
     public void close() throws IOException, InterruptedException {
         synchronized (recordStorageArray) {
             for (int i = 0; count > i; ++i) {
-                BlockableRecordStorage recordStorage = recordStorageArray.get(i);
-                recordStorage.writeLock().lockInterruptibly();
-                try {
-                    recordStorage.close();
-                } finally {
-                    recordStorage.writeLock().unlock();
-                }
+                recordStorageArray.get(i).close();
             }
         }
     }

@@ -43,7 +43,7 @@ public class RecordChannelStorageFileTest {
     }
 
     @After
-    public void tearDown() throws IOException {
+    public void tearDown() throws IOException, InterruptedException {
         if (file != null) {
             file.delete();
         }
@@ -55,7 +55,7 @@ public class RecordChannelStorageFileTest {
     }
 
     @Test
-    public void testSelectLastRecordHeader() throws IOException {
+    public void testSelectLastRecordHeader() throws IOException, InterruptedException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -103,7 +103,7 @@ public class RecordChannelStorageFileTest {
     }
 
     @Test
-    public void testSelectFirstRecordHeader() throws IOException {
+    public void testSelectFirstRecordHeader() throws IOException, InterruptedException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -147,7 +147,7 @@ public class RecordChannelStorageFileTest {
 
 
     @Test
-    public void testFindLastRecordHeader_WithNoRecord() throws IOException {
+    public void testFindLastRecordHeader_WithNoRecord() throws IOException, InterruptedException {
         // Given
         recordChannelStorage.create();
         // When
@@ -158,7 +158,7 @@ public class RecordChannelStorageFileTest {
 
 
     @Test
-    public void testFindLastRecordHeader_WithOneRecord() throws IOException {
+    public void testFindLastRecordHeader_WithOneRecord() throws IOException, InterruptedException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -191,7 +191,7 @@ public class RecordChannelStorageFileTest {
 
 
     @Test
-    public void testFindLastRecordHeader_WithTwoRecords() throws IOException {
+    public void testFindLastRecordHeader_WithTwoRecords() throws IOException, InterruptedException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -239,7 +239,7 @@ public class RecordChannelStorageFileTest {
 
 
     @Test
-    public void testFindLastRecordHeader_WithOneRecord_ButDeleted() throws IOException {
+    public void testFindLastRecordHeader_WithOneRecord_ButDeleted() throws IOException, InterruptedException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -261,7 +261,7 @@ public class RecordChannelStorageFileTest {
 
 
     @Test
-    public void testFindLastRecordHeader_WithTwoRecords_ButAllDeleted() throws IOException {
+    public void testFindLastRecordHeader_WithTwoRecords_ButAllDeleted() throws IOException, InterruptedException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -291,7 +291,7 @@ public class RecordChannelStorageFileTest {
 
 
     @Test
-    public void testFindLastRecordHeader_WithTwoRecords_ButLastDeleted() throws IOException {
+    public void testFindLastRecordHeader_WithTwoRecords_ButLastDeleted() throws IOException, InterruptedException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -339,7 +339,7 @@ public class RecordChannelStorageFileTest {
 
 
     @Test
-    public void testFindLastRecordHeader_WithTwoRecords_ButFirstDeleted() throws IOException {
+    public void testFindLastRecordHeader_WithTwoRecords_ButFirstDeleted() throws IOException, InterruptedException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -387,7 +387,7 @@ public class RecordChannelStorageFileTest {
 
 
     @Test
-    public void testSelectRecord_WithTwoRecords() throws IOException {
+    public void testSelectRecord_WithTwoRecords() throws IOException, InterruptedException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
@@ -421,7 +421,7 @@ public class RecordChannelStorageFileTest {
     }
 
     @Test
-    public void testInitializeRecordStorage() throws IOException {
+    public void testInitializeRecordStorage() throws IOException, InterruptedException {
         // ===============
         // === Given
         byte[] key1 = UUID.randomUUID().toString().getBytes();
