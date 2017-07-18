@@ -129,7 +129,7 @@ public class StribedRecordStorage implements RecordStorage {
                 BlockableRecordStorage recordStorage = recordStorageArray.get(i);
                 recordStorage.writeLock().lockInterruptibly();
                 try {
-                    recordStorage.initialize();
+                    recordStorage.close();
                 } finally {
                     recordStorage.writeLock().unlock();
                 }
