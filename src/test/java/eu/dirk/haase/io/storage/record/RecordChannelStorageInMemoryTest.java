@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Created by dhaa on 15.07.17.
  */
 @RunWith(BlockJUnit4ClassRunner.class)
-public class RecordStorageInMemoryTest extends RecordStorageFileTest {
+public class RecordChannelStorageInMemoryTest extends RecordChannelStorageFileTest {
 
     public static final int CAPACITY = 1024 * 10;
 
@@ -66,7 +66,7 @@ public class RecordStorageInMemoryTest extends RecordStorageFileTest {
         buffer.limit(lastPosition);
         // ===============
         // === When
-        recordStorage.create();
+        recordChannelStorage.create();
         // ===============
         // === Then
         assertThat(channel.position()).isEqualTo(lastPosition);
@@ -90,11 +90,11 @@ public class RecordStorageInMemoryTest extends RecordStorageFileTest {
         ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
         dataByteBuffer1.position(dataLength1);
 
-        recordStorage.create();
+        recordChannelStorage.create();
 
         RecordHeader firstHeader = new RecordHeader();
         RecordData firstData = new RecordData();
-        MainHeader mainHeader = recordStorage.getMainHeader();
+        MainHeader mainHeader = recordChannelStorage.getMainHeader();
 
         int recordDatalength = firstData.getLength();
         int recordHeaderLength = firstHeader.getLength();
@@ -107,7 +107,7 @@ public class RecordStorageInMemoryTest extends RecordStorageFileTest {
         int secondDataPosition = secondPosition + recordHeaderLength;
         // ===============
         // === When
-        int recordIndex = recordStorage.insertRecord(null, dataByteBuffer1);
+        int recordIndex = recordChannelStorage.insertRecord(null, dataByteBuffer1);
         // ===============
         // === Then
         //          - Skip the MainHeader :
@@ -133,11 +133,11 @@ public class RecordStorageInMemoryTest extends RecordStorageFileTest {
         ByteBuffer dataByteBuffer1 = ByteBuffer.allocate(dataLength1);
         dataByteBuffer1.position(dataLength1);
 
-        recordStorage.create();
+        recordChannelStorage.create();
 
         RecordHeader firstHeader = new RecordHeader();
         RecordData firstData = new RecordData();
-        MainHeader mainHeader = recordStorage.getMainHeader();
+        MainHeader mainHeader = recordChannelStorage.getMainHeader();
 
         int recordDatalength = firstData.getLength();
         int recordHeaderLength = firstHeader.getLength();
@@ -149,10 +149,10 @@ public class RecordStorageInMemoryTest extends RecordStorageFileTest {
         int secondPosition = firstPosition + firstRecordLengthOverall;
         int secondDataPosition = secondPosition + recordHeaderLength;
 
-        int recordIndex1a = recordStorage.insertRecord(key1, dataByteBuffer1);
+        int recordIndex1a = recordChannelStorage.insertRecord(key1, dataByteBuffer1);
         // ===============
         // === When
-        int recordIndex1b = recordStorage.updateRecord(key1, dataByteBuffer1);
+        int recordIndex1b = recordChannelStorage.updateRecord(key1, dataByteBuffer1);
         // ===============
         // === Then
         assertThat(recordIndex1a).isEqualTo(0);
@@ -185,11 +185,11 @@ public class RecordStorageInMemoryTest extends RecordStorageFileTest {
         dataByteBuffer1.position(dataLength1);
         dataByteBuffer2.position(dataLength2);
 
-        recordStorage.create();
+        recordChannelStorage.create();
 
         RecordHeader firstHeader = new RecordHeader();
         RecordData firstData = new RecordData();
-        MainHeader mainHeader = recordStorage.getMainHeader();
+        MainHeader mainHeader = recordChannelStorage.getMainHeader();
 
         int recordDatalength = firstData.getLength();
         int recordHeaderLength = firstHeader.getLength();
@@ -202,8 +202,8 @@ public class RecordStorageInMemoryTest extends RecordStorageFileTest {
         int secondDataPosition = secondPosition + recordHeaderLength;
         // ===============
         // === When
-        int recordIndex1 = recordStorage.insertRecord(key1, dataByteBuffer1);
-        int recordIndex2 = recordStorage.insertRecord(key2, dataByteBuffer2);
+        int recordIndex1 = recordChannelStorage.insertRecord(key1, dataByteBuffer1);
+        int recordIndex2 = recordChannelStorage.insertRecord(key2, dataByteBuffer2);
         // ===============
         // === Then
         //          - Skip the MainHeader :
