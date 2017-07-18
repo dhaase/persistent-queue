@@ -30,7 +30,7 @@ public class RecordStorageTest {
     }
 
     @After
-    public void tearDown() throws IOException {
+    public void tearDown() throws IOException, InterruptedException {
         if (file != null) {
             file.delete();
         }
@@ -122,7 +122,7 @@ public class RecordStorageTest {
                     recordStorage.insertRecord(key2, dataByteBuffer2);
                     recordStorage.selectRecord(key1, dataByteBuffer1b);
                     recordStorage.selectRecord(key2, dataByteBuffer2b);
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }

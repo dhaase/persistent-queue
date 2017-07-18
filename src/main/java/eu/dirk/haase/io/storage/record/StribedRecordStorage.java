@@ -16,7 +16,7 @@ public class StribedRecordStorage implements RecordStorage {
     private final int count;
     private final Shared shared;
 
-    private final AtomicReferenceArray<RecordStorage> recordStorageArray;
+    private final AtomicReferenceArray<BlockableRecordStorage> recordStorageArray;
 
     public StribedRecordStorage(int count, File file, OpenOption... options) throws IOException {
         this(count, file.toPath(), options);
@@ -27,87 +27,111 @@ public class StribedRecordStorage implements RecordStorage {
         this.count = count;
         this.shared = new Shared();
         RecordChannelStorage recordChannelStorage;
-        RecordStorage[] recordStorages = new RecordStorage[count];
+        BlockableRecordStorage[] recordStorages = new BlockableRecordStorage[count];
         for (int i = 0; count > i; ++i) {
             recordStorages[i] = recordChannelStorage = new RecordChannelStorage(path, options);
             recordChannelStorage.setShared(this.shared);
         }
-        this.recordStorageArray = new AtomicReferenceArray(recordStorages);
+        this.recordStorageArray = new AtomicReferenceArray<BlockableRecordStorage>(recordStorages);
     }
 
-    private RecordStorage getRecordStorage() {
+    private BlockableRecordStorage getRecordStorage() {
         long id = Thread.currentThread().getId();
         long index = (id % this.stribeCount);
         return recordStorageArray.get((int) index);
     }
 
     @Override
-    public void create() throws IOException {
+    public void create() throws IOException, InterruptedException {
         synchronized (recordStorageArray) {
-            RecordStorage recordStorage = recordStorageArray.get(0);
-            synchronized (recordStorage) {
+            BlockableRecordStorage recordStorage = recordStorageArray.get(0);
+            recordStorage.writeLock().lockInterruptibly();
+            try {
                 recordStorage.create();
+            } finally {
+                recordStorage.writeLock().unlock();
             }
             for (int i = 1; count > i; ++i) {
                 recordStorage = recordStorageArray.get(i);
-                synchronized (recordStorage) {
+                recordStorage.writeLock().lockInterruptibly();
+                try {
                     recordStorage.initialize();
+                } finally {
+                    recordStorage.writeLock().unlock();
                 }
             }
         }
     }
 
     @Override
-    public void initialize() throws IOException {
+    public void initialize() throws IOException, InterruptedException {
         synchronized (recordStorageArray) {
             for (int i = 0; count > i; ++i) {
-                RecordStorage recordStorage = recordStorageArray.get(i);
-                synchronized (recordStorage) {
+                BlockableRecordStorage recordStorage = recordStorageArray.get(i);
+                recordStorage.writeLock().lockInterruptibly();
+                try {
                     recordStorage.initialize();
+                } finally {
+                    recordStorage.writeLock().unlock();
                 }
             }
         }
     }
 
     @Override
-    public int selectRecord(byte[] key, ByteBuffer dataBuffer) throws IOException {
-        RecordStorage recordStorage = getRecordStorage();
-        synchronized (recordStorage) {
+    public int selectRecord(byte[] key, ByteBuffer dataBuffer) throws IOException, InterruptedException {
+        BlockableRecordStorage recordStorage = getRecordStorage();
+        recordStorage.readLock().lockInterruptibly();
+        try {
             return recordStorage.selectRecord(key, dataBuffer);
+        } finally {
+            recordStorage.readLock().unlock();
         }
     }
 
     @Override
-    public int updateRecord(byte[] key, ByteBuffer dataBuffer) throws IOException {
-        RecordStorage recordStorage = getRecordStorage();
-        synchronized (recordStorage) {
+    public int updateRecord(byte[] key, ByteBuffer dataBuffer) throws IOException, InterruptedException {
+        BlockableRecordStorage recordStorage = getRecordStorage();
+        recordStorage.writeLock().lockInterruptibly();
+        try {
             return getRecordStorage().updateRecord(key, dataBuffer);
+        } finally {
+            recordStorage.writeLock().unlock();
         }
     }
 
     @Override
-    public int deleteRecord(byte[] key) throws IOException {
-        RecordStorage recordStorage = getRecordStorage();
-        synchronized (recordStorage) {
+    public int deleteRecord(byte[] key) throws IOException, InterruptedException {
+        BlockableRecordStorage recordStorage = getRecordStorage();
+        recordStorage.writeLock().lockInterruptibly();
+        try {
             return getRecordStorage().deleteRecord(key);
+        } finally {
+            recordStorage.writeLock().unlock();
         }
     }
 
     @Override
-    public int insertRecord(byte[] key, ByteBuffer dataBuffer) throws IOException {
-        RecordStorage recordStorage = getRecordStorage();
-        synchronized (recordStorage) {
+    public int insertRecord(byte[] key, ByteBuffer dataBuffer) throws IOException, InterruptedException {
+        BlockableRecordStorage recordStorage = getRecordStorage();
+        recordStorage.writeLock().lockInterruptibly();
+        try {
             return getRecordStorage().insertRecord(key, dataBuffer);
+        } finally {
+            recordStorage.writeLock().unlock();
         }
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() throws IOException, InterruptedException {
         synchronized (recordStorageArray) {
             for (int i = 0; count > i; ++i) {
-                RecordStorage recordStorage = recordStorageArray.get(i);
-                synchronized (recordStorage) {
-                    recordStorage.close();
+                BlockableRecordStorage recordStorage = recordStorageArray.get(i);
+                recordStorage.writeLock().lockInterruptibly();
+                try {
+                    recordStorage.initialize();
+                } finally {
+                    recordStorage.writeLock().unlock();
                 }
             }
         }

@@ -17,11 +17,14 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Created by dhaa on 15.07.17.
  */
-public class RecordChannelStorage implements RecordStorage {
+public class RecordChannelStorage implements BlockableRecordStorage {
 
     private final SeekableByteChannel channel;
 
@@ -38,6 +41,9 @@ public class RecordChannelStorage implements RecordStorage {
     private final Set<OpenOption> mutableOpenOptionSet = new HashSet<OpenOption>();
     private final Set<OpenOption> openOptionSet = Collections.unmodifiableSet(mutableOpenOptionSet);
     private final AtomicInteger nextRecordIndex;
+    private final ReadWriteLock readWriteLock;
+    private final Lock readLock;
+    private final Lock writeLock;
     private Shared shared;
     private RecordHeader lastRecordHeader;
 
@@ -59,6 +65,20 @@ public class RecordChannelStorage implements RecordStorage {
         this.headerBuffer = ByteBuffer.allocate(calcBufferCapacity());
         this.nextRecordIndex = new AtomicInteger(0);
         this.shared = new Shared();
+
+        this.readWriteLock = new ReentrantReadWriteLock();
+        this.readLock = this.readWriteLock.readLock();
+        this.writeLock = this.readWriteLock.writeLock();
+    }
+
+    @Override
+    public Lock readLock() {
+        return readLock;
+    }
+
+    @Override
+    public Lock writeLock() {
+        return writeLock;
     }
 
     public Shared getShared() {
