@@ -14,7 +14,7 @@ public class StribedRecordStorage implements RecordStorage {
 
     private final long stribeCount;
     private final int count;
-    private final Shared shared;
+    private final SharedTailPointer sharedTailPointer;
 
     private final AtomicReferenceArray<RecordStorage> recordStorageArray;
     private final RecordStorage[] recordStorages;
@@ -26,12 +26,12 @@ public class StribedRecordStorage implements RecordStorage {
     public StribedRecordStorage(int count, Path path, OpenOption... options) throws IOException {
         this.stribeCount = count;
         this.count = count;
-        this.shared = new Shared();
+        this.sharedTailPointer = new SharedTailPointer();
         RecordChannelStorage recordChannelStorage;
         recordStorages = new RecordStorage[count];
         for (int i = 0; count > i; ++i) {
             recordStorages[i] = recordChannelStorage = new RecordChannelStorage(path, options);
-            recordChannelStorage.setShared(this.shared);
+            recordChannelStorage.setSharedTailPointer(this.sharedTailPointer);
         }
         this.recordStorageArray = new AtomicReferenceArray<RecordStorage>(recordStorages);
     }

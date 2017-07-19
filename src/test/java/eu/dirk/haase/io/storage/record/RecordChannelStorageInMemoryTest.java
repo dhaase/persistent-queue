@@ -104,7 +104,6 @@ public class RecordChannelStorageInMemoryTest extends RecordChannelStorageFileTe
 
         int firstPosition = mainHeaderLength;
         int secondPosition = firstPosition + firstRecordLengthOverall;
-        int secondDataPosition = secondPosition + recordHeaderLength;
         // ===============
         // === When
         int recordIndex = recordChannelStorage.insertRecord(null, dataByteBuffer1);

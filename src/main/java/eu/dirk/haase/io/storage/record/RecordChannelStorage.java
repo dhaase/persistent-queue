@@ -44,7 +44,7 @@ public class RecordChannelStorage implements RecordStorage {
     private final ReadWriteLock readWriteLock;
     private final Lock readLock;
     private final Lock writeLock;
-    private Shared shared;
+    private SharedTailPointer sharedTailPointer;
     private RecordHeader lastRecordHeader;
 
     public RecordChannelStorage(File file, OpenOption... options) throws IOException {
@@ -64,19 +64,19 @@ public class RecordChannelStorage implements RecordStorage {
         this.currRecordHeader = new RecordHeader();
         this.headerBuffer = ByteBuffer.allocate(calcBufferCapacity());
         this.nextRecordIndex = new AtomicInteger(0);
-        this.shared = new Shared();
+        this.sharedTailPointer = new SharedTailPointer();
 
         this.readWriteLock = new ReentrantReadWriteLock();
         this.readLock = this.readWriteLock.readLock();
         this.writeLock = this.readWriteLock.writeLock();
     }
 
-    public Shared getShared() {
-        return shared;
+    public SharedTailPointer getSharedTailPointer() {
+        return sharedTailPointer;
     }
 
-    public void setShared(Shared shared) {
-        this.shared = shared;
+    public void setSharedTailPointer(SharedTailPointer sharedTailPointer) {
+        this.sharedTailPointer = sharedTailPointer;
     }
 
     private int calcBufferCapacity() {
@@ -173,8 +173,8 @@ public class RecordChannelStorage implements RecordStorage {
         try {
             int nextIndex = nextRecordIndex.getAndIncrement();
 
-            int dataLength = shared.calcRecordLength(dataBuffer);
-            long nextRecordStartPointer = shared.next(dataLength);
+            int dataLength = sharedTailPointer.calcRecordLength(dataBuffer);
+            long nextRecordStartPointer = sharedTailPointer.nextLock(dataLength);
 
             this.currRecordHeader.init(nextRecordStartPointer, nextIndex, dataLength);
             this.currRecordHeader.copyKey(key);

@@ -5,6 +5,7 @@ import eu.dirk.haase.io.storage.record.data.RecordData;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SeekableByteChannel;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,7 +41,7 @@ final public class RecordHeader extends AbstractHeader {
         headerLength += 4; // size of int for recordDataLength
         headerLength += 4; // size of int for recordIndex
         headerLength += 4; // size of int for bitfield
-        headerLength += 8; // size of int for lastModifiedTimeMillis
+        headerLength += 8; // size of long for lastModifiedTimeMillis
         headerLength += KEY_LENGTH; // size of the key
 
         SUB_HEADER_LENGTH = headerLength;
@@ -50,6 +51,7 @@ final public class RecordHeader extends AbstractHeader {
      * Key of this Record.
      */
     private final byte[] key;
+    private final RecordData currRecordData;
     /**
      * Start pointer to the first byte of the data within the storage unit.
      */
@@ -83,6 +85,7 @@ final public class RecordHeader extends AbstractHeader {
     public RecordHeader() {
         super(SUB_HEADER_LENGTH);
         this.key = new byte[KEY_LENGTH];
+        this.currRecordData = new RecordData();
         initFirstHeader();
     }
 
@@ -115,6 +118,7 @@ final public class RecordHeader extends AbstractHeader {
     }
 
 
+
     public RecordHeader nextHeader() {
         RecordHeader nextRecordHeader = new RecordHeader();
 
@@ -132,6 +136,11 @@ final public class RecordHeader extends AbstractHeader {
         return nextRecordHeader;
     }
 
+    public boolean isLastRecord(SeekableByteChannel channel) throws IOException {
+        currRecordData.initFromRecordHeader(this);
+        long lastPosition = currRecordData.getDataStartPointer() + currRecordData.getRecordDataLength();
+        return channel.size() == lastPosition;
+    }
 
     public void init(long nextStartPointer, int nextIndex, int dataLength) {
         this.recordDataCapacity = this.recordDataLength = dataLength;

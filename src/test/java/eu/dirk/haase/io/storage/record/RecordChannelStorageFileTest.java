@@ -32,7 +32,7 @@ public class RecordChannelStorageFileTest {
     @Before
     public void setUp() throws IOException {
         channel = createChannel();
-        Shared shared = new Shared();
+        SharedTailPointer sharedTailPointer = new SharedTailPointer();
         recordChannelStorage = new RecordChannelStorage(null, channel);
     }
 
@@ -448,7 +448,7 @@ public class RecordChannelStorageFileTest {
         recordChannelStorage = null;
         // ===============
         // === When
-        Shared shared = new Shared();
+        SharedTailPointer sharedTailPointer = new SharedTailPointer();
         RecordChannelStorage reinitRecordChannelStorage = new RecordChannelStorage(file, StandardOpenOption.READ);
         reinitRecordChannelStorage.initialize();
         int recordIndex1 = reinitRecordChannelStorage.selectRecord(key1, dataByteBuffer1b);
