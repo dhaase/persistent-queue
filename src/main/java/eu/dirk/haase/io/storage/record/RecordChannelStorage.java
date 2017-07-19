@@ -114,17 +114,17 @@ public class RecordChannelStorage implements RecordStorage {
 
     @Override
     public void initialize() throws IOException, InterruptedException {
-        readLock.lockInterruptibly();
+        writeLock.lockInterruptibly();
         try {
             this.mainHeader.read(this.channel, this.headerBuffer);
         } finally {
-            readLock.unlock();
+            writeLock.unlock();
         }
     }
 
     @Override
     public int selectRecord(byte[] key, ByteBuffer dataBuffer) throws IOException, InterruptedException {
-        readLock.lockInterruptibly();
+        writeLock.lockInterruptibly();
         try {
             RecordHeader recordHeader = selectRecordHeader(key);
             if ((recordHeader != null) && !recordHeader.isDeleted()) {
@@ -135,7 +135,7 @@ public class RecordChannelStorage implements RecordStorage {
             }
             return -1;
         } finally {
-            readLock.unlock();
+            writeLock.unlock();
         }
     }
 

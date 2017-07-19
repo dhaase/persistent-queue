@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by dhaa on 15.07.17.
@@ -26,7 +27,7 @@ public class RecordStorageTest {
     public void setUp() throws IOException {
         OpenOption[] openOption = {StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.READ};
         file = new File("./RecordChannelStorageFileTest.recordfile.bin");
-        recordStorage = new StribedRecordStorage(10, file, openOption);
+        recordStorage = new StribedRecordStorage(7, file, openOption);
     }
 
     @After
@@ -78,6 +79,8 @@ public class RecordStorageTest {
         t6.setDaemon(true);
         t7.setDaemon(true);
 
+        long startNanos = System.nanoTime();
+
         t1.start();
         t2.start();
         t3.start();
@@ -94,12 +97,12 @@ public class RecordStorageTest {
         t6.join();
         t7.join();
 
-        System.out.println("file size: " + file.length());
+        System.out.println("file size: " + file.length() + "; duration: " + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
     }
 
 
     class Task implements Runnable {
-        int CAPACITY = 1024;
+        int CAPACITY = 1024 * 50;
         byte[] buffer1b = new byte[CAPACITY];
         byte[] buffer2b = new byte[CAPACITY];
 
@@ -113,6 +116,8 @@ public class RecordStorageTest {
 
         Task(RecordStorage recordStorage) {
             this.recordStorage = recordStorage;
+            dataByteBuffer1.position(CAPACITY);
+            dataByteBuffer2.position(CAPACITY);
         }
 
         @Override

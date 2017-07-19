@@ -10,7 +10,6 @@ import java.nio.channels.SeekableByteChannel;
  * {@link SeekableByteChannel} implementation backed by an auto-resizing byte array; thread-safe. Can hold a maxiumum of
  * {@link Integer#MAX_VALUE} bytes.
  *
- * @author <a href="mailto:alr@jboss.org">Andrew Lee Rubinger</a>
  */
 public class SeekableInMemoryByteChannel implements SeekableByteChannel {
 

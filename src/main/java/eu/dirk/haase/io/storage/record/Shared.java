@@ -12,20 +12,27 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class Shared {
 
-    private final AtomicLong tailPointer;
+    private final AtomicLong atomicTailPointer;
     private final int sumRecordHeaderLength;
+    private long tailPointer;
 
     public Shared() {
+        tailPointer = 0;
         MainHeader mainHeader = new MainHeader();
         RecordData recordData = new RecordData();
         RecordHeader recordHeader = new RecordHeader();
 
-        this.tailPointer = new AtomicLong(mainHeader.getLength());
+        this.atomicTailPointer = new AtomicLong(mainHeader.getLength());
         this.sumRecordHeaderLength = recordData.getLength() + recordHeader.getLength();
     }
 
     public long next(int dataLength) {
-        return this.tailPointer.getAndAdd(dataLength);
+        synchronized (this) {
+            long oldTailPointer = tailPointer;
+            tailPointer = (tailPointer + dataLength);
+            return oldTailPointer;
+        }
+        //return this.atomicTailPointer.getAndAdd(dataLength);
     }
 
 
